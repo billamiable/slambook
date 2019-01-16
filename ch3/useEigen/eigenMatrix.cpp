@@ -108,5 +108,13 @@ int main( int argc, char** argv )
     x = matrix_NN.colPivHouseholderQr().solve(v_Nd);
     cout <<"time use in Qr decomposition is " <<1000*  (clock() - time_stt)/(double)CLOCKS_PER_SEC <<"ms" << endl;
 
+    // in Lab computer
+    // time use in normal inverse is 4.103ms
+    // time use in Qr decomposition is 0.134ms
+
+    // in Macbook Air
+    // time use in normal inverse is 0.39ms 
+    // time use in Qr decomposition is 0.212ms
+
     return 0;
 }
