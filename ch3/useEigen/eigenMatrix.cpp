@@ -21,7 +21,8 @@ int main( int argc, char** argv )
     // 同时，Eigen 通过 typedef 提供了许多内置类型，不过底层仍是Eigen::Matrix
     // 例如 Vector3d 实质上是 Eigen::Matrix<double, 3, 1>，即三维向量
     Eigen::Vector3d v_3d;
-	// 这是一样的
+	  
+    // 这是不一样的，表示float数据类型
     Eigen::Matrix<float,3,1> vd_3d;
 
     // Matrix3d 实质上是 Eigen::Matrix<double, 3, 3>
@@ -41,6 +42,7 @@ int main( int argc, char** argv )
     // 用()访问矩阵中的元素
     for (int i=0; i<2; i++) {
         for (int j=0; j<3; j++)
+            // \t means horizontal tab
             cout<<matrix_23(i,j)<<"\t";
         cout<<endl;
     }
@@ -52,6 +54,7 @@ int main( int argc, char** argv )
     // Eigen::Matrix<double, 2, 1> result_wrong_type = matrix_23 * v_3d;
     // 应该显式转换
     Eigen::Matrix<double, 2, 1> result = matrix_23.cast<double>() * v_3d;
+    // Eigen::Matrix<double, 2, 1> result = matrix_23 * v_3d;
     cout << result << endl;
 
     Eigen::Matrix<float, 2, 1> result2 = matrix_23 * vd_3d;
@@ -59,10 +62,13 @@ int main( int argc, char** argv )
 
     // 同样你不能搞错矩阵的维度
     // 试着取消下面的注释，看看Eigen会报什么错
+    // 会报 YOU_MIXED_MATRICES_OF_DIFFERENT_SIZES
     // Eigen::Matrix<double, 2, 3> result_wrong_dimension = matrix_23.cast<double>() * v_3d;
 
     // 一些矩阵运算
     // 四则运算就不演示了，直接用+-*/即可。
+    // not quite clear why using ::
+    // random is from -1 to 1
     matrix_33 = Eigen::Matrix3d::Random();      // 随机数矩阵
     cout << matrix_33 << endl << endl;
 
@@ -75,6 +81,7 @@ int main( int argc, char** argv )
 
     // 特征值
     // 实对称矩阵可以保证对角化成功
+    // x^T * x 必为对称矩阵，且必为实矩阵，否则直接x可能解有虚值
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigen_solver ( matrix_33.transpose()*matrix_33 );
     cout << "Eigen values = \n" << eigen_solver.eigenvalues() << endl;
     cout << "Eigen vectors = \n" << eigen_solver.eigenvectors() << endl;
@@ -84,6 +91,7 @@ int main( int argc, char** argv )
     // N的大小在前边的宏里定义，它由随机数生成
     // 直接求逆自然是最直接的，但是求逆运算量大
 
+    // 之前定义了MARTRIX_SIZE=50
     Eigen::Matrix< double, MATRIX_SIZE, MATRIX_SIZE > matrix_NN;
     matrix_NN = Eigen::MatrixXd::Random( MATRIX_SIZE, MATRIX_SIZE );
     Eigen::Matrix< double, MATRIX_SIZE,  1> v_Nd;
@@ -94,7 +102,8 @@ int main( int argc, char** argv )
     Eigen::Matrix<double,MATRIX_SIZE,1> x = matrix_NN.inverse()*v_Nd;
     cout <<"time use in normal inverse is " << 1000* (clock() - time_stt)/(double)CLOCKS_PER_SEC << "ms"<< endl;
     
-	// 通常用矩阵分解来求，例如QR分解，速度会快很多
+	  // 通常用矩阵分解来求，例如QR分解，速度会快很多
+    // a little confused, QR分解好像和施密特正交化有关系
     time_stt = clock();
     x = matrix_NN.colPivHouseholderQr().solve(v_Nd);
     cout <<"time use in Qr decomposition is " <<1000*  (clock() - time_stt)/(double)CLOCKS_PER_SEC <<"ms" << endl;
