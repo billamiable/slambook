@@ -6,6 +6,9 @@ set(CMAKE_CXX_FLAGS "-std=c++11")
 # 添加Eigen头文件
 include_directories( "/usr/include/eigen3" )
 
+# in osx and brew install
+# include_directories( /usr/local/Cellar/eigen/3.3.5/include/eigen3 )
+
 # 添加Pangolin依赖
 find_package( Pangolin )
 include_directories( ${Pangolin_INCLUDE_DIRS} )
