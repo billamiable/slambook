@@ -52,24 +52,36 @@ int main ( int argc, char** argv )
     {
         // 用cv::Mat::ptr获得图像的行指针
         // 这里用unsigned是因为不知道数据的格式
+        // Mat::ptr returns a pointer to the specified matrix row.
         unsigned char* row_ptr = image.ptr<unsigned char> ( y );  // row_ptr是第y行的头指针
         // printf("指针row_ptr所指向的地址为 %p , 该地址上所保存的值为%d\n", row_ptr, *row_ptr);
+        // // 学到重要的东西：char* x，那么x+3和&x[3]是一个效果，都是取进三个位置的地址
+        // printf("指针的值row_ptr[3]所指向的地址为 %p , 该地址上所保存的值为%d\n", &row_ptr[3], row_ptr[3]);
         // printf("指针row_ptr+3所指向的地址为 %p , 该地址上所保存的值为%d\n", row_ptr+3, *(row_ptr+3));
+        // printf("指针&row_ptr[3]所指向的地址为 %p , 该地址上所保存的值为%d\n", &row_ptr[3], *(&row_ptr[3]));
         // cv::waitKey ( 0 ); 
         for ( size_t x=0; x<image.cols; x++ )
         {
             // 访问位于 x,y 处的像素
-            // 现在唯一的问题：为何这里是用[]来得到地址的？
+            // 需要重新定义一个指针的原因是一个负责行，一个负责行下的列~
+            // 所以这里的本质意思是row_ptr + x*image.channels()，YEAH!
+            // 因此，data_ptr的值即为row_ptr + x*image.channels()
+            // Correct way to define pointer: char* x = &p
+            // VIP!优先级: [] > &
+            // unsigned char* data_ptr = row_ptr + x*image.channels() ;
             unsigned char* data_ptr = &row_ptr[ x*image.channels() ]; // data_ptr 指向待访问的像素数据
-            // printf("指向指针row_ptr的指针所指向的地址为 %p , 该地址上第x*3位置指向的地址为 %p\n", &row_ptr, &row_ptr[ x*image.channels() ]);
-            // printf("指向指针row_ptr的指针+3所指向的地址为 %p , 该地址上第&row_ptr+3位置指向的地址为 %p\n", &row_ptr+3, *(&row_ptr+3));
+            // printf("指向指针row_ptr+x*image.channels()的指针所指向的地址为 %p , 或为 %p\n", row_ptr+x*image.channels(), &row_ptr[ x*image.channels() ]);
+            // printf("指向指针row_ptr+3的指针所指向的地址为 %p , 或为 %p\n", row_ptr+3, &row_ptr[3]);
             // printf("指针data_ptr所指向的地址为 %p , 该地址上所保存的值为%d\n", data_ptr, *data_ptr);
-            // cv::waitKey ( 0 ); 
+            
             // 输出该像素的每个通道,如果是灰度图就只有一个通道
             // for循环是先c=0，然后判断条件，再执行，然后c加1，再判断
             for ( int c = 0; c != image.channels(); c++ )
             {
+                // 这个其实很简单，其实很自然，不是定义指针啦~~
                 unsigned char data = data_ptr[c]; // data为I(x,y)第c个通道的值
+                printf("指针data所指向的地址为 %p , 该地址上所保存的值为%d\n", &data, data);
+                // cv::waitKey ( 0 ); 
             }
         }
     }
