@@ -45,8 +45,10 @@ int main( int argc, char** argv )
         // 这其实就是常用简写方法，省去了三段式for(i=1;i<10;i++)
         for ( auto& d:data )
             fin>>d;
+        // 定义了旋转矩阵的四元数
         Eigen::Quaterniond q( data[6], data[3], data[4], data[5] );
         Eigen::Isometry3d T(q);
+        // 这个还挺神奇的，pretranslate函数，应该是把最初的Pose转换成了世界坐标系
         T.pretranslate( Eigen::Vector3d( data[0], data[1], data[2] ));
         // 看来push_back是vector的一种常用操作，有点像堆栈
         poses.push_back( T );
@@ -58,6 +60,7 @@ int main( int argc, char** argv )
     double cy = 253.5;
     double fx = 518.0;
     double fy = 519.0;
+    // 这个depthScale其实挺奇怪的？
     double depthScale = 1000.0;
     
     cout<<"正在将图像转换为点云..."<<endl;
@@ -83,9 +86,10 @@ int main( int argc, char** argv )
             {
                 // depth是int型??
                 // 又定义了指针类型。。
+                // 这里直接index到横纵坐标值，这里是make sense的！
                 unsigned int d = depth.ptr<unsigned short> ( v )[u]; // 深度值
                 if ( d==0 ) continue; // 为0表示没有测量到
-                // 以下是相机坐标系的坐标
+                // 以下是将图像坐标系转换成相机坐标系！
                 Eigen::Vector3d point; 
                 point[2] = double(d)/depthScale; 
                 point[0] = (u-cx)*point[2]/fx;
@@ -99,7 +103,7 @@ int main( int argc, char** argv )
                 p.x = pointWorld[0];
                 p.y = pointWorld[1];
                 p.z = pointWorld[2];
-                // step函数是啥？？
+                // step是结构体中的一个变量？
                 p.b = color.data[ v*color.step+u*color.channels() ];
                 p.g = color.data[ v*color.step+u*color.channels()+1 ];
                 p.r = color.data[ v*color.step+u*color.channels()+2 ];
@@ -110,7 +114,7 @@ int main( int argc, char** argv )
             }
     }
     
-    // 不理解
+    // 其实就是定义is_dense变量的值
     pointCloud->is_dense = false;
     // 这是一种什么关系呢？
     cout<<"点云共有"<<pointCloud->size()<<"个点."<<endl;
