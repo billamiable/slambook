@@ -5,6 +5,7 @@ set( CMAKE_BUILD_TYPE "Release" )
 set( CMAKE_CXX_FLAGS "-std=c++11 -O3" )
 
 # 添加cmake模块以使用ceres库
+# 这个还挺神奇的哈哈！
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules )
 
 # 寻找Ceres库并添加它的头文件
