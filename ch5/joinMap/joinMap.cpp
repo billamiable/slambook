@@ -56,24 +56,25 @@ int main( int argc, char** argv )
         // 这里才是正式读取txt文件的内容，以数组的形式读取！
         // 静态分配--数组初始化方法，默认都是0
         double data[7] = {0};
-        // 这其实就是常用简写方法，省去了三段式for(i=1;i<10;i++)
-        // auto& applys automatic type deduction
-        // it is new feature in c++11 and it is meaningful
-        // for(auto x:v) where, v is data, x is defined variable, here in int type
-        // 所以这里可以看成for(d=double& data[i];;i++)?
-        // 因为data是数组的首地址，没问题
+        
+        // it is new feature in c++11, auto: applys automatic type deduction
+        // 简写方法，省去了三段式for (int i = 0; i < len; i++) + double d = data[i]
+        // for(auto x:v) where, v is data, x is defined variable     
+        // 在这里虽然data是首地址，但是实际运行时，还是令d=data[i]!
         // cout<<data<<endl;
         // exit(1);
+
         // VIP: c++ for loop needs {}!!!!!
-        // TO-DO: leave this for further 
         for ( auto& d:data ){
-        // for ( auto& d:data )
-            // 注意：这里是写，不是读！所以可能要用到地址
+        // 这个是错的，因为这样就不能操作d后也对data操作了！
+        // for ( auto d:data ){
             // 输入数据的类型即为double，按理说只要copy数据值即可
             fin>>d;
             // cout<<d<<endl;
             // exit(1);
         }
+        // cout<<data[0]<<data[1]<<data[2]<<data[3]<<data[4]<<data[5]<<data[6]<<endl;
+        // exit(1);
 
         // 定义了旋转矩阵的四元数
         // pose文件的构成：前三个是XYZ，后四个表征四元数(3个虚部+1个实部)
@@ -183,8 +184,7 @@ int main( int argc, char** argv )
     cout<<"点云共有"<<pointCloud->size()<<"个点."<<endl;
     // 最后将建好的点云存到本地，用的是值！
     // 后一个参数const pcl::PointCloud< PointT > &cloud
-    // 这里&又不是取地址！
-    // TO-DO: 区分&的两种用法！
+    // 这里&又不是取地址！本质就是输入的代名词~
     pcl::io::savePCDFileBinary("map.pcd", *pointCloud );
     return 0;
 }
