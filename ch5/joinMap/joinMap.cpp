@@ -11,8 +11,9 @@ using namespace std;
 
 int main( int argc, char** argv )
 {
-    // 学习下vector的应用
+    // vector<type> variable_name;
     vector<cv::Mat> colorImgs, depthImgs;    // 彩色图和深度图
+    // TO-DO: 这个应该是比较难的，可以先跳过，之后再研究。
     // Type of the allocator object used to define the storage allocation model.
     // 什么是allocator?
     // 其实本质就是定义了一种class type，默认情况下是系统template
@@ -20,7 +21,10 @@ int main( int argc, char** argv )
     
     // 读取txt文件，fin是自定义对象名
     ifstream fin("./pose.txt");
-    // 为啥不写做if(!fin.is_open())
+    // 为啥不写做if(!fin.is_open())？ it is essentially the same, at least here!
+    // cout<<!fin<<endl;
+    // cout<<!fin.is_open()<<endl;
+    // exit(1);
     if (!fin)
     {
         cerr<<"请在有pose.txt的目录下运行此程序"<<endl;
@@ -32,35 +36,71 @@ int main( int argc, char** argv )
     for ( int i=0; i<5; i++ )
     {
         // 这是定义了读图片的格式~
+        // it allows formatted i/o, similar to std::printf() and std::scanf()
+        // 这个读rgb,depth图的方法很独特啊~哈哈~
+        // 本质上就是和scanf一样样的，一行写成了两行。。还要转成str
         boost::format fmt( "./%s/%d.%s" ); //图像文件格式
-        // push_back是什么意思？对于头尾可以插的
-        // emplace_back据说功能一样，
-        // 这个读rgb,depth图的方法很独特啊~
+        
+        // push_back is the way to store variables
+        // TO-DO: emplace_back据说功能一样，但是效率更高，有待考察。。
         colorImgs.push_back( cv::imread( (fmt%"color"%(i+1)%"png").str() ));
-        // 这个-1的读法是什么呢？
+        // VIP: imread分为不同的flags，其中-1表示原图输入，0表示灰度图，1表示RGB三通道
+        // default is 1, which represents the color
+        // -1 returns the loaded image as is (with alpha channel, otherwise it gets cropped)
+        // ppm(Portable PixMap) can be one byte per pixel (up to 2 bytes), which stores RGB
+        // pgm(Portable GreyMap) stores grayscale info, one value per pixel - up to 2 bytes
+        // 这里可以用-1或者2，都是一个效果，2也可以把他们转换成2bytes
         depthImgs.push_back( cv::imread( (fmt%"depth"%(i+1)%"pgm").str(), -1 )); // 使用-1读取原始图像
+        // depthImgs.push_back( cv::imread( (fmt%"depth"%(i+1)%"pgm").str(), 2 )); // 使用-1读取原始图像
         
         // 这里才是正式读取txt文件的内容，以数组的形式读取！
+        // 静态分配--数组初始化方法，默认都是0
         double data[7] = {0};
         // 这其实就是常用简写方法，省去了三段式for(i=1;i<10;i++)
-        for ( auto& d:data )
+        // auto& applys automatic type deduction
+        // it is new feature in c++11 and it is meaningful
+        // for(auto x:v) where, v is data, x is defined variable, here in int type
+        // 所以这里可以看成for(d=double& data[i];;i++)?
+        // 因为data是数组的首地址，没问题
+        // cout<<data<<endl;
+        // exit(1);
+        // VIP: c++ for loop needs {}!!!!!
+        // TO-DO: leave this for further 
+        for ( auto& d:data ){
+        // for ( auto& d:data )
+            // 注意：这里是写，不是读！所以可能要用到地址
+            // 输入数据的类型即为double，按理说只要copy数据值即可
             fin>>d;
+            // cout<<d<<endl;
+            // exit(1);
+        }
+
         // 定义了旋转矩阵的四元数
+        // pose文件的构成：前三个是XYZ，后四个表征四元数(3个虚部+1个实部)
+        // 可以有两种定义方式，一般选前者，因为简单
         Eigen::Quaterniond q( data[6], data[3], data[4], data[5] );
+        // Eigen::Quaterniond q = Eigen::Quaterniond ( data[6], data[3], data[4], data[5] );
+        // cout<<"quaternion = \n"<<q.coeffs() <<endl;
+        // exit(1);
+
+        // 搞清楚了上面一行，这里就顺理成章了
         Eigen::Isometry3d T(q);
-        // 这个还挺神奇的，pretranslate函数，应该是把最初的Pose转换成了世界坐标系
+
+        // pretranslate函数用于inital position setting
+        // Applies on the right the translation matrix represented by the vector
         T.pretranslate( Eigen::Vector3d( data[0], data[1], data[2] ));
-        // 看来push_back是vector的一种常用操作，有点像堆栈
+        
+        // 通过push_back保存各个图像的初始位姿！
         poses.push_back( T );
     }
     
     // 计算点云并拼接
     // 相机内参 
-    double cx = 325.5;
+    double cx = 325.5; // 这个值也挺有意思，并不是640/2
     double cy = 253.5;
     double fx = 518.0;
     double fy = 519.0;
-    // 这个depthScale其实挺奇怪的？
+    // 说明一开始depth是以mm计的，后面要转换成meter
     double depthScale = 1000.0;
     
     cout<<"正在将图像转换为点云..."<<endl;
@@ -70,6 +110,8 @@ int main( int argc, char** argv )
     typedef pcl::PointCloud<PointT> PointCloud;
     
     // 新建一个点云，用到了new~
+    // new表示对象所拥有的内存是动态分配的，直到你调用delete()方法对象才会被销毁，否则一直存在
+    // new创建后应该是指针的形式
     PointCloud::Ptr pointCloud( new PointCloud ); 
     // 处理每对RGBD数据，并添加至点云中
     for ( int i=0; i<5; i++ )
@@ -78,47 +120,71 @@ int main( int argc, char** argv )
         // 获取原始数据
         cv::Mat color = colorImgs[i]; 
         cv::Mat depth = depthImgs[i];
+        // 获取pose数据
         Eigen::Isometry3d T = poses[i];
 
         // 按照行列的方式对于每个像素进行操作
         for ( int v=0; v<color.rows; v++ )
             for ( int u=0; u<color.cols; u++ )
             {
-                // depth是int型??
-                // 又定义了指针类型。。
+                // depth是以mm为单位，所以int型是合理的，而且都是正的，所以是unsigned
                 // 这里直接index到横纵坐标值，这里是make sense的！
+                // 这里可以理解成先用depth.ptr<>(v)取到指针，然后[u]取到值
+                // 所以又是两步合成一步了！耶！现在能看懂了！
                 unsigned int d = depth.ptr<unsigned short> ( v )[u]; // 深度值
+                
+                // 这个操作也是挺骚的哈哈！
                 if ( d==0 ) continue; // 为0表示没有测量到
+                // cout<<"d="<<d<<endl;
+                // exit(1);
+
                 // 以下是将图像坐标系转换成相机坐标系！
                 Eigen::Vector3d point; 
+                // 由mm转换成m
                 point[2] = double(d)/depthScale; 
                 point[0] = (u-cx)*point[2]/fx;
                 point[1] = (v-cy)*point[2]/fy; 
+
                 // 乘以T从而将相机坐标系转换成世界坐标系XYZ！
-                // 还需要理解一下T的构造。。
+                // T本质是pose，是系统的输入，而且应该是预定义好了结构
+                // 从而使得Eigen::Isometry3d可以直接与Eigen::Vector3d相乘
+                // 得到的结果仍为Vector3d，对应世界坐标系下的坐标
                 Eigen::Vector3d pointWorld = T*point;
                 
                 // 在点云中定义每一个像素点对应的三维空间点
+                // typedef pcl::PointXYZRGB PointT; 
                 PointT p ;
                 p.x = pointWorld[0];
                 p.y = pointWorld[1];
                 p.z = pointWorld[2];
-                // step是结构体中的一个变量？
+
+                // data表征cv::Mat里Pointer to the user data
+                // step表征cv::Mat里Number of bytes each matrix row occupies
+                // 而由于RGB每个都是1byte，所以正好多少个byte就是隔着多少个地址！
+                // 这里本质就是直接用color图对应像素点的值赋值罢了
+                // cout<<"num is "<<v*color.step+u*color.channels()<<endl;
+                // exit(1);
+                // VIP:有意思的是，这里的顺序竟然是BGR！
                 p.b = color.data[ v*color.step+u*color.channels() ];
                 p.g = color.data[ v*color.step+u*color.channels()+1 ];
                 p.r = color.data[ v*color.step+u*color.channels()+2 ];
-                // 最后一样是vector形式，通过push_back存储起来
-                // 这里又出现了一个很重要的概念->，好好理解下。。
+
                 // ->和*ptr.的效用是一样的！
+                // points是PointCloud的parameter，是PCL最基本的数据类型
+                // 最后一样是vector形式，通过push_back存储起来
+                // 因此，之后也可以通过pointCloud->points[i]取到第i个数据
                 pointCloud->points.push_back( p );
             }
     }
     
-    // 其实就是定义is_dense变量的值
+    // 定义另一个参数is_dense的值
     pointCloud->is_dense = false;
-    // 这是一种什么关系呢？
+    // 参数size
     cout<<"点云共有"<<pointCloud->size()<<"个点."<<endl;
-    // 最后将建好的点云存到本地
+    // 最后将建好的点云存到本地，用的是值！
+    // 后一个参数const pcl::PointCloud< PointT > &cloud
+    // 这里&又不是取地址！
+    // TO-DO: 区分&的两种用法！
     pcl::io::savePCDFileBinary("map.pcd", *pointCloud );
     return 0;
 }

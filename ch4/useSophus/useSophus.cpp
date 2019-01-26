@@ -34,7 +34,7 @@ int main( int argc, char** argv )
     // 相对的，vee为反对称到向量，反映射关系~
     cout<<"so3 hat vee= "<<Sophus::SO3::vee( Sophus::SO3::hat(so3) ).transpose()<<endl; // transpose纯粹是为了输出美观一些
     
-    // 这个需要再好好看下
+    // TO-DO: 这个需要再好好看下
     // 增量扰动模型的更新
     Eigen::Vector3d update_so3(1e-4, 0, 0); //假设更新量为这么多
     Sophus::SO3 SO3_updated = Sophus::SO3::exp(update_so3)*SO3_R;
