@@ -1,3 +1,4 @@
+# 这里相当于告诉电脑如何查找g2o
 # Find the header files
 
 FIND_PATH(G2O_INCLUDE_DIR g2o/core/base_vertex.h

@@ -12,6 +12,7 @@
 #include <chrono>
 using namespace std; 
 
+// 整体也理解了~
 // 曲线模型的顶点，模板参数：优化变量维度和数据类型
 class CurveFittingVertex: public g2o::BaseVertex<3, Eigen::Vector3d>
 {
@@ -76,9 +77,10 @@ int main( int argc, char** argv )
     Block::LinearSolverType* linearSolver = new g2o::LinearSolverDense<Block::PoseMatrixType>(); // 线性方程求解器
     Block* solver_ptr = new Block( linearSolver );      // 矩阵块求解器
     // 梯度下降方法，从GN, LM, DogLeg 中选
-    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg( solver_ptr );
+    // LM可以收敛，GN不收敛，DogLeg收敛且快！
+    // g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg( solver_ptr );
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr );
-    // g2o::OptimizationAlgorithmDogleg* solver = new g2o::OptimizationAlgorithmDogleg( solver_ptr );
+    g2o::OptimizationAlgorithmDogleg* solver = new g2o::OptimizationAlgorithmDogleg( solver_ptr );
     g2o::SparseOptimizer optimizer;     // 图模型
     optimizer.setAlgorithm( solver );   // 设置求解器
     optimizer.setVerbose( true );       // 打开调试输出

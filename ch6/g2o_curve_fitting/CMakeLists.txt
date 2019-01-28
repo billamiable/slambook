@@ -11,8 +11,8 @@ list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules )
 find_package( G2O REQUIRED )
 include_directories( 
     ${G2O_INCLUDE_DIRS}
-    "/usr/include/eigen3"
-    # /usr/local/Cellar/eigen/3.3.5/include/eigen3
+    # "/usr/include/eigen3"
+    /usr/local/Cellar/eigen/3.3.5/include/eigen3
 )
 
 # OpenCV

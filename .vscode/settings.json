@@ -5,6 +5,9 @@
     "iterator": "cpp",
     "string": "cpp",
     "vector": "cpp",
-    "ostream": "cpp"
+    "ostream": "cpp",
+    "__split_buffer": "cpp",
+    "deque": "cpp",
+    "list": "cpp"
   }
 }
