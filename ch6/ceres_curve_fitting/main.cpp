@@ -13,7 +13,7 @@ using namespace std;
 struct CURVE_FITTING_COST
 {
     // 搞清楚_x的效用~
-    // TO-DO: 这个还没理解
+    // TO-DO: 这个还没理解，以后再说吧~
     CURVE_FITTING_COST ( double x, double y ) : _x ( x ), _y ( y ) {}
     // 残差的计算
     // 模板元本质上是复杂了一点的template
@@ -29,10 +29,10 @@ struct CURVE_FITTING_COST
     // 以下就是ceres的基本定义形式，模板编程思路！
     // 把T看成一个type，比如double，那T(-y)就是double(-y)~
     template <typename T>
-    // TO-DO: const继续了解下~
     // 输入，返回Bool型
     bool operator() (
         // 这里表示指针指向固定，值固定，若T是double，就是const double* const abc~
+        // TO-DO: const T* abc/ T const* abc，表示值固定；T* const abc，表示指针固定（有点反直觉？）
         const T* const abc,     // 模型参数，有3维
         T* residual ) const     // 残差
     {
@@ -74,12 +74,14 @@ int main ( int argc, char** argv )
     // 哈哈，都是解最小二乘哈哈~
     // 构建最小二乘问题，ceres都是构造Problem来求解的
     ceres::Problem problem;
+    // i++和++i在for循环中一样，但是i=1;j=++i/i++，前者j=2，后者j=1，i都等于2
     for ( int i=0; i<N; i++ )
     {
         // feed给problem的是残差，即y-exp(ax^2+bx+c)
         problem.AddResidualBlock (     // 向问题中添加误差项
         // 使用自动求导，模板参数：误差类型，输出维度，输入维度，维数要与前面struct中一致
             // 输入一维的x，输出三维的abc
+            // 1 means number of residuals, 3 means Number of parameters in block 0
             new ceres::AutoDiffCostFunction<CURVE_FITTING_COST, 1, 3> ( 
                 // 这个CURVE_FITTING_COST是结构体CURVE_FITTING_COST里的函数！
                 new CURVE_FITTING_COST ( x_data[i], y_data[i] )
@@ -87,8 +89,9 @@ int main ( int argc, char** argv )
             // kernel function is what is applied on each data instance to 
             // map the original non-linear observations into a higher-dimensional space 
             // in which they become separable
+            // 当有明显的离群点时，可以在这里加入penalty方法，比如new CachyLoss(0.5)
             nullptr,            // 核函数，这里不使用，为空
-            abc                 // 待估计参数
+            abc                 // 待估计参数，要求输入指针形式！
         );
     }
 
