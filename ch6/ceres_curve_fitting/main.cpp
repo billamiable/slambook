@@ -13,6 +13,7 @@ using namespace std;
 struct CURVE_FITTING_COST
 {
     // 搞清楚_x的效用~
+    // TO-DO: 这个还没理解
     CURVE_FITTING_COST ( double x, double y ) : _x ( x ), _y ( y ) {}
     // 残差的计算
     // 模板元本质上是复杂了一点的template
@@ -24,15 +25,18 @@ struct CURVE_FITTING_COST
     // }
     // 后面就可以直接用someFunction~
     
-    // 这个和template <class T>基本是一样的。。
+    // 这个和template <class T>基本是一样的，除了这里typename不仅仅局限于class~
+    // 以下就是ceres的基本定义形式，模板编程思路！
+    // 把T看成一个type，比如double，那T(-y)就是double(-y)~
     template <typename T>
-    // TO-DO: 重载括号()，到底哪里用了呢？
+    // TO-DO: const继续了解下~
+    // 输入，返回Bool型
     bool operator() (
-        // const也很棒，学习下~
+        // 这里表示指针指向固定，值固定，若T是double，就是const double* const abc~
         const T* const abc,     // 模型参数，有3维
         T* residual ) const     // 残差
     {
-        // 看不懂，略难。。
+        // residual和abc都是指针，因此都要[0]才能表征值，这下都能理解了！哈哈！
         residual[0] = T ( _y ) - ceres::exp ( abc[0]*T ( _x ) *T ( _x ) + abc[1]*T ( _x ) + abc[2] ); // y-exp(ax^2+bx+c)
         return true;
     }
@@ -75,7 +79,7 @@ int main ( int argc, char** argv )
         // feed给problem的是残差，即y-exp(ax^2+bx+c)
         problem.AddResidualBlock (     // 向问题中添加误差项
         // 使用自动求导，模板参数：误差类型，输出维度，输入维度，维数要与前面struct中一致
-            // 输入一维的x,y，输出三维的abc
+            // 输入一维的x，输出三维的abc
             new ceres::AutoDiffCostFunction<CURVE_FITTING_COST, 1, 3> ( 
                 // 这个CURVE_FITTING_COST是结构体CURVE_FITTING_COST里的函数！
                 new CURVE_FITTING_COST ( x_data[i], y_data[i] )

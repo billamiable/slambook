@@ -18,8 +18,10 @@ class CurveFittingVertex: public g2o::BaseVertex<3, Eigen::Vector3d>
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    // 这里用到了虚函数
     virtual void setToOriginImpl() // 重置
-    {
+    {   
+        // 初始值设置，那是不是一开始设置得好一些，G-N就可以了？
         _estimate << 0,0,0;
     }
     
@@ -43,6 +45,7 @@ public:
     {
         const CurveFittingVertex* v = static_cast<const CurveFittingVertex*> (_vertices[0]);
         const Eigen::Vector3d abc = v->estimate();
+        // 这里是计算误差项
         _error(0,0) = _measurement - std::exp( abc(0,0)*_x*_x + abc(1,0)*_x + abc(2,0) ) ;
     }
     virtual bool read( istream& in ) {}
@@ -71,7 +74,9 @@ int main( int argc, char** argv )
         );
         cout<<x_data[i]<<" "<<y_data[i]<<endl;
     }
+    // 前面和ceres都一样
     
+    // 以下这部分是基础的g2o构建方法
     // 构建图优化，先设定g2o
     typedef g2o::BlockSolver< g2o::BlockSolverTraits<3,1> > Block;  // 每个误差项优化变量维度为3，误差值维度为1
     Block::LinearSolverType* linearSolver = new g2o::LinearSolverDense<Block::PoseMatrixType>(); // 线性方程求解器
@@ -85,10 +90,13 @@ int main( int argc, char** argv )
     optimizer.setAlgorithm( solver );   // 设置求解器
     optimizer.setVerbose( true );       // 打开调试输出
     
+    // 这里涉及到程序开头的curve定义！
     // 往图中增加顶点
     CurveFittingVertex* v = new CurveFittingVertex();
     v->setEstimate( Eigen::Vector3d(0,0,0) );
+    // 注意：这里每个都要id，也不理解为啥？
     v->setId(0);
+    // TO-DO: 理解这种非线性优化的原理.. ->需要专门学习下优化的内容！
     optimizer.addVertex( v );
     
     // 往图中增加边
