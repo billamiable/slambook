@@ -89,8 +89,9 @@ int main ( int argc, char** argv )
             // kernel function is what is applied on each data instance to 
             // map the original non-linear observations into a higher-dimensional space 
             // in which they become separable
+            // 二范数随离群点的错误程度增大而增长很快，因此就会影响优化结果
             // 当有明显的离群点时，可以在这里加入penalty方法，比如new CachyLoss(0.5)
-            nullptr,            // 核函数，这里不使用，为空
+            nullptr,            // 核函数，这里不使用，为空，可以理解为分段函数，比如Huber loss!原来是它啊！
             abc                 // 待估计参数，要求输入指针形式！
         );
     }

@@ -12,7 +12,7 @@
 #include <chrono>
 using namespace std; 
 
-// 整体也理解了~
+// TO-DO: 整体也理解了~这个部分应该是模板的定义方式
 // 曲线模型的顶点，模板参数：优化变量维度和数据类型
 class CurveFittingVertex: public g2o::BaseVertex<3, Eigen::Vector3d>
 {
@@ -21,7 +21,7 @@ public:
     // 这里用到了虚函数
     virtual void setToOriginImpl() // 重置
     {   
-        // 初始值设置，那是不是一开始设置得好一些，G-N就可以了？
+        // 初始值设置，那是不是一开始设置得好一些，G-N就可以了？TO-DO: 试一下
         _estimate << 0,0,0;
     }
     
@@ -78,6 +78,8 @@ int main( int argc, char** argv )
     
     // 以下这部分是基础的g2o构建方法
     // 构建图优化，先设定g2o
+    // 这里由于求解问题不是SLAM，所以不一样。
+    // 如果是SLAM，Block_Solver_6_3，对应z-g(x,y)中x,y的维度分别是6,3
     typedef g2o::BlockSolver< g2o::BlockSolverTraits<3,1> > Block;  // 每个误差项优化变量维度为3，误差值维度为1
     Block::LinearSolverType* linearSolver = new g2o::LinearSolverDense<Block::PoseMatrixType>(); // 线性方程求解器
     Block* solver_ptr = new Block( linearSolver );      // 矩阵块求解器
@@ -96,17 +98,18 @@ int main( int argc, char** argv )
     v->setEstimate( Eigen::Vector3d(0,0,0) );
     // 注意：这里每个都要id，也不理解为啥？
     v->setId(0);
-    // TO-DO: 理解这种非线性优化的原理.. ->需要专门学习下优化的内容！
+    // 理解了，本质上每一个线性优化问题都可以表征成图的形式
     optimizer.addVertex( v );
     
+    // 对于边来说，与ceres一样，也可以加入核函数~只需要设置一下就可以了~
     // 往图中增加边
     for ( int i=0; i<N; i++ )
     {
         CurveFittingEdge* edge = new CurveFittingEdge( x_data[i] );
         edge->setId(i);
-        edge->setVertex( 0, v );                // 设置连接的顶点
+        edge->setVertex( 0, v );                // 设置连接的顶点，这个很重要，就是残差相减的两项
         edge->setMeasurement( y_data[i] );      // 观测数值
-        edge->setInformation( Eigen::Matrix<double,1,1>::Identity()*1/(w_sigma*w_sigma) ); // 信息矩阵：协方差矩阵之逆
+        edge->setInformation( Eigen::Matrix<double,1,1>::Identity()*1/(w_sigma*w_sigma) ); // 信息矩阵：协方差矩阵之逆，恩恩，就按照公式来feed
         optimizer.addEdge( edge );
     }
     
