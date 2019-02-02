@@ -16,8 +16,8 @@ include_directories(
     ${OpenCV_INCLUDE_DIRS} 
     ${G2O_INCLUDE_DIRS}
     ${CSPARSE_INCLUDE_DIR}
-    "/usr/include/eigen3/"
-    #/usr/local/Cellar/eigen/3.3.5/include/eigen3
+    # "/usr/include/eigen3/"
+    /usr/local/Cellar/eigen/3.3.5/include/eigen3
 )
 
 add_executable( feature_extraction feature_extraction.cpp  )
@@ -27,10 +27,12 @@ target_link_libraries( feature_extraction ${OpenCV_LIBS} )
 add_executable( pose_estimation_2d2d pose_estimation_2d2d.cpp )
 target_link_libraries( pose_estimation_2d2d ${OpenCV_LIBS} )
 
+# 所以extra.cpp是用来opencv2的啊，因为相当于手写了几个opencv3的函数
 # add_executable( triangulation triangulation.cpp extra.cpp) # use this if in opencv2 
 add_executable( triangulation triangulation.cpp )
 target_link_libraries( triangulation ${OpenCV_LIBS} )
 
+# 3d2d和之前的不一样，用到了g2o和csparse
 add_executable( pose_estimation_3d2d pose_estimation_3d2d.cpp )
 target_link_libraries( pose_estimation_3d2d 
    ${OpenCV_LIBS}
@@ -38,6 +40,7 @@ target_link_libraries( pose_estimation_3d2d
    g2o_core g2o_stuff g2o_types_sba g2o_csparse_extension
 )
 
+# 3d3d也是要上面两个
 add_executable( pose_estimation_3d3d pose_estimation_3d3d.cpp )
 target_link_libraries( pose_estimation_3d3d 
    ${OpenCV_LIBS}

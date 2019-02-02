@@ -21,8 +21,10 @@ public:
     // 这里用到了虚函数
     virtual void setToOriginImpl() // 重置
     {   
-        // 初始值设置，那是不是一开始设置得好一些，G-N就可以了？TO-DO: 试一下
-        _estimate << 0,0,0;
+        // 初始值设置，那是不是一开始设置得好一些，G-N就可以了？
+        // 震惊了！初值直接设置成真值，用GN也发散了。。
+        // g2o的G-N实现的不太好，通常用g2o都是L-M或dogleg
+        _estimate << 1.1,2.1,1.1;
     }
     
     virtual void oplusImpl( const double* update ) // 更新
@@ -85,9 +87,10 @@ int main( int argc, char** argv )
     Block* solver_ptr = new Block( linearSolver );      // 矩阵块求解器
     // 梯度下降方法，从GN, LM, DogLeg 中选
     // LM可以收敛，GN不收敛，DogLeg收敛且快！
-    // g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg( solver_ptr );
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg( solver_ptr );
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr );
-    g2o::OptimizationAlgorithmDogleg* solver = new g2o::OptimizationAlgorithmDogleg( solver_ptr );
+    // g2o::OptimizationAlgorithmDogleg* solver = new g2o::OptimizationAlgorithmDogleg( solver_ptr );
+    // printf("using LM!!!!!!!!!!!!!!!!!!!!!!!!");
     g2o::SparseOptimizer optimizer;     // 图模型
     optimizer.setAlgorithm( solver );   // 设置求解器
     optimizer.setVerbose( true );       // 打开调试输出
