@@ -3,7 +3,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
-// #include "extra.h" // use this if in OpenCV2 
+// #include "extra.h" // use this if in OpenCV2，这里自己写了几个函数
 using namespace std;
 using namespace cv;
 
@@ -11,6 +11,10 @@ using namespace cv;
  * 本程序演示了如何使用2D-2D的特征匹配估计相机运动
  * **************************************************/
 
+// 这个整体理解了，具体细则一会儿自己再研究下~
+// 特征匹配封装成函数
+// 问题：这是啥意思？先在前面申明下，然后后面具体写实现？那为啥不直接写在这里？
+// 回答：想法正确，也可以直接写在这里，在标准的C编译器中不合法，Xcode倒是可以
 void find_feature_matches (
     const Mat& img_1, const Mat& img_2,
     std::vector<KeyPoint>& keypoints_1,
@@ -37,8 +41,10 @@ int main ( int argc, char** argv )
     Mat img_1 = imread ( argv[1], CV_LOAD_IMAGE_COLOR );
     Mat img_2 = imread ( argv[2], CV_LOAD_IMAGE_COLOR );
 
+    // 这里和之前一样
     vector<KeyPoint> keypoints_1, keypoints_2;
     vector<DMatch> matches;
+    // 自己写的函数做到的
     find_feature_matches ( img_1, img_2, keypoints_1, keypoints_2, matches );
     cout<<"一共找到了"<<matches.size() <<"组匹配点"<<endl;
 
@@ -55,6 +61,7 @@ int main ( int argc, char** argv )
     cout<<"t^R="<<endl<<t_x*R<<endl;
 
     //-- 验证对极约束
+    // 对于每一对match的特征点，计算x2^T_hat*R*x1，理论上都应该接近于0
     Mat K = ( Mat_<double> ( 3,3 ) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1 );
     for ( DMatch m: matches )
     {
@@ -68,6 +75,10 @@ int main ( int argc, char** argv )
     return 0;
 }
 
+// 在这里定义了函数的具体实现，本质上和之前的feature_extraction里差不多
+// 这里的&是引用吧？为啥后面就没有呢？是说这里不能改吗？
+// 知道了这里的keypoints,matches都要在里面修改，必然要用引用~
+// TO-DO: const引用
 void find_feature_matches ( const Mat& img_1, const Mat& img_2,
                             std::vector<KeyPoint>& keypoints_1,
                             std::vector<KeyPoint>& keypoints_2,
@@ -130,6 +141,8 @@ Point2d pixel2cam ( const Point2d& p, const Mat& K )
 }
 
 
+// 这个是此code的精华部分~
+// 这里的&只作用于R,T上，因为只有这两个是output~
 void pose_estimation_2d2d ( std::vector<KeyPoint> keypoints_1,
                             std::vector<KeyPoint> keypoints_2,
                             std::vector< DMatch > matches,
@@ -148,6 +161,7 @@ void pose_estimation_2d2d ( std::vector<KeyPoint> keypoints_1,
         points2.push_back ( keypoints_2[matches[i].trainIdx].pt );
     }
 
+    // 总体的逻辑是理解的，明天再来细节得理解下就好了~
     //-- 计算基础矩阵
     Mat fundamental_matrix;
     fundamental_matrix = findFundamentalMat ( points1, points2, CV_FM_8POINT );

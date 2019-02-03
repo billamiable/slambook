@@ -25,6 +25,7 @@ int main ( int argc, char** argv )
     std::vector<KeyPoint> keypoints_1, keypoints_2;
     Mat descriptors_1, descriptors_2;
     // 分别创建FAST角点，ORB的BRIEF描述子，以及匹配的对象，都是以指针的形式
+    // 默认检测500个特征点，可以在creat(1000)改变检测的数量~
     Ptr<FeatureDetector> detector = ORB::create();
     Ptr<DescriptorExtractor> descriptor = ORB::create();
     // Ptr<FeatureDetector> detector = FeatureDetector::create(detector_name);
@@ -65,7 +66,7 @@ int main ( int argc, char** argv )
 
     // 找出所有匹配之间的最小距离和最大距离, 即是最相似的和最不相似的两组点之间的距离
     // 在doc里写了，descriptors是按行排列的~
-    // row=500, col=32，也就是找到了500个匹配，每个描述子的维度是32维？
+    // row=500, col=32，也就是找到了500个匹配，TO-DO: 每个描述子的维度是32维？patch_size=31
     cout<<"row is "<<descriptors_1.rows<<endl;
     // 下面这个不work，因为matches没有rows这个member
     // cout<<"row is "<<matches.rows<<endl;
@@ -79,8 +80,10 @@ int main ( int argc, char** argv )
         if ( dist > max_dist ) max_dist = dist;
     }
     
-    // 仅供娱乐的写法，这个是上面写法的简略版~可能是c++11的特性，
-    // TO-DO: []()这个好像很高级的样子
+    // 仅供娱乐的写法，这个是上面写法的简略版~是c++11的特性，
+    // []()是lambda函数，哈哈，那就合理了！
+    // 用法：[ captures ] ( params ) { body }, captures can be omitted, body is Function body
+    // 具体见：https://en.cppreference.com/w/cpp/language/lambda
     // 对于vector求min_element，可以用下面的快捷方法，用begin和end，相当于matches[i]
     // 后面这坨是啥？给了compare的方法！！returns ​true if a is less than b
     // 这里要用const的原因是，在比较过程中，不允许修改内容
