@@ -11,7 +11,6 @@ using namespace cv;
  * 本程序演示了如何使用2D-2D的特征匹配估计相机运动
  * **************************************************/
 
-// 这个整体理解了，具体细则一会儿自己再研究下~
 // 特征匹配封装成函数
 // 问题：这是啥意思？先在前面申明下，然后后面具体写实现？那为啥不直接写在这里？
 // 回答：想法正确，也可以直接写在这里，在标准的C编译器中不合法，Xcode倒是可以
@@ -50,9 +49,12 @@ int main ( int argc, char** argv )
 
     //-- 估计两张图像间运动
     Mat R,t;
+    // 最后得到的是两张图像之间的R,T
     pose_estimation_2d2d ( keypoints_1, keypoints_2, matches, R, t );
 
     //-- 验证E=t^R*scale
+    // 这里用了Mat的at功能，给特定点赋值~
+    // 这个验证还没完全搞懂，应该是把1投到2，看下是不是一样的把？
     Mat t_x = ( Mat_<double> ( 3,3 ) <<
                 0,                      -t.at<double> ( 2,0 ),     t.at<double> ( 1,0 ),
                 t.at<double> ( 2,0 ),      0,                      -t.at<double> ( 0,0 ),
@@ -61,14 +63,19 @@ int main ( int argc, char** argv )
     cout<<"t^R="<<endl<<t_x*R<<endl;
 
     //-- 验证对极约束
+    // 所以这个验证是针对特征点的~
     // 对于每一对match的特征点，计算x2^T_hat*R*x1，理论上都应该接近于0
     Mat K = ( Mat_<double> ( 3,3 ) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1 );
     for ( DMatch m: matches )
     {
+        // 所以上面是算epipolar constraint里的每一项
+        // 因此Point2d应该是图像坐标系的值
+        // 明天继续理解一下吧~晚安~
         Point2d pt1 = pixel2cam ( keypoints_1[ m.queryIdx ].pt, K );
         Mat y1 = ( Mat_<double> ( 3,1 ) << pt1.x, pt1.y, 1 );
         Point2d pt2 = pixel2cam ( keypoints_2[ m.trainIdx ].pt, K );
         Mat y2 = ( Mat_<double> ( 3,1 ) << pt2.x, pt2.y, 1 );
+        // 这个就是epipolar constraint的形式
         Mat d = y2.t() * t_x * R * y1;
         cout << "epipolar constraint = " << d << endl;
     }
@@ -130,9 +137,10 @@ void find_feature_matches ( const Mat& img_1, const Mat& img_2,
     }
 }
 
-
+// 将相机坐标系转成图像坐标系？好奇怪。。
 Point2d pixel2cam ( const Point2d& p, const Mat& K )
 {
+    // 噢噢
     return Point2d
            (
                ( p.x - K.at<double> ( 0,2 ) ) / K.at<double> ( 0,0 ),
@@ -148,38 +156,48 @@ void pose_estimation_2d2d ( std::vector<KeyPoint> keypoints_1,
                             std::vector< DMatch > matches,
                             Mat& R, Mat& t )
 {
-    // 相机内参,TUM Freiburg2
+    // 相机内参,TUM Freiburg2，所以图片不是乱找的，是从数据集采下来的
+    // 所以说我当时用iphone拍的要想重建3D，还是需要知道相机的内参的~
+    // 哇，这种输入数据的方式好高级
     Mat K = ( Mat_<double> ( 3,3 ) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1 );
 
     //-- 把匹配点转换为vector<Point2f>的形式
+    // 为甚要这么做捏？可能是findFundamentalMat的数据格式要求~
     vector<Point2f> points1;
     vector<Point2f> points2;
 
     for ( int i = 0; i < ( int ) matches.size(); i++ )
     {
+        // 这里的取样方式很特别，可以研究下~
         points1.push_back ( keypoints_1[matches[i].queryIdx].pt );
         points2.push_back ( keypoints_2[matches[i].trainIdx].pt );
     }
 
-    // 总体的逻辑是理解的，明天再来细节得理解下就好了~
     //-- 计算基础矩阵
+    // 直接调用opencv3的函数，输入是匹配的特征点，以及后面的是啥？
+    // 这里不用内参，因为不是归一化的结果~
     Mat fundamental_matrix;
     fundamental_matrix = findFundamentalMat ( points1, points2, CV_FM_8POINT );
     cout<<"fundamental_matrix is "<<endl<< fundamental_matrix<<endl;
 
     //-- 计算本质矩阵
+    // 同样直接调用函数
     Point2d principal_point ( 325.1, 249.7 );	//相机光心, TUM dataset标定值
     double focal_length = 521;			//相机焦距, TUM dataset标定值
     Mat essential_matrix;
+    // 输入匹配的特征点，还需要内参的信息，也就是事先标定好的情况
     essential_matrix = findEssentialMat ( points1, points2, focal_length, principal_point );
     cout<<"essential_matrix is "<<endl<< essential_matrix<<endl;
 
     //-- 计算单应矩阵
+    // 这个其实还不怎么理解~好像cv的作业里也有哎，一大堆，可以找资料学习下~
     Mat homography_matrix;
     homography_matrix = findHomography ( points1, points2, RANSAC, 3 );
     cout<<"homography_matrix is "<<endl<<homography_matrix<<endl;
 
     //-- 从本质矩阵中恢复旋转和平移信息.
+    // 恩恩，果然这个也是直接调函数，输入是本质矩阵，匹配的特征点？，内参？（为啥要这些？）
+    // 输出是R,T
     recoverPose ( essential_matrix, points1, points2, R, t, focal_length, principal_point );
     cout<<"R is "<<endl<<R<<endl;
     cout<<"t is "<<endl<<t<<endl;
