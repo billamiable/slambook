@@ -79,6 +79,7 @@ int main ( int argc, char** argv )
     bundleAdjustment ( pts_3d, pts_2d, K, R, t );
 }
 
+// 这部分应该和之前都一样
 void find_feature_matches ( const Mat& img_1, const Mat& img_2,
                             std::vector<KeyPoint>& keypoints_1,
                             std::vector<KeyPoint>& keypoints_2,
@@ -130,6 +131,7 @@ void find_feature_matches ( const Mat& img_1, const Mat& img_2,
     }
 }
 
+// 这个也一样
 Point2d pixel2cam ( const Point2d& p, const Mat& K )
 {
     return Point2d
@@ -139,6 +141,7 @@ Point2d pixel2cam ( const Point2d& p, const Mat& K )
            );
 }
 
+// 这个是本份code的精华所在
 void bundleAdjustment (
     const vector< Point3f > points_3d,
     const vector< Point2f > points_2d,
