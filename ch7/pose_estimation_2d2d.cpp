@@ -22,6 +22,9 @@ double duration;
 // reference传参可以修改输入值影响函数外的结果，所以可以认为结果也是一种输出~
 // copy传参则不能影响函数外，则认为是一种纯粹的输入~
 // const reference传参呢，保留前两者的优点，既不用创建copy，效率低；同时不会修改输入变量的值！
+// 现在更加理解这个了！
+// 发现自己理解有误，传地址和传值不是根本的区别，reference传参的根本在于先申明引用，之后传
+// 所以值和地址都是可以做成reference传参的！
 void find_feature_matches (
     const Mat& img_1, const Mat& img_2,
     std::vector<KeyPoint>& keypoints_1,
@@ -30,6 +33,7 @@ void find_feature_matches (
 
 // 所以这里改成const reference是不是会变快？
 // 几乎没差别~~都是17ms左右
+// 但是实际上要测试快慢，最好到秒级别，才能看出差距
 void pose_estimation_2d2d (
     // const std::vector<KeyPoint>& keypoints_1,
     // const std::vector<KeyPoint>& keypoints_2,
@@ -39,7 +43,7 @@ void pose_estimation_2d2d (
     std::vector< DMatch > matches,
     Mat& R, Mat& t );
 
-// 像素坐标转相机归一化坐标
+// 像素坐标转相机归一化坐标，本质上是少乘了depth
 Point2d pixel2cam ( const Point2d& p, const Mat& K );
 
 int main ( int argc, char** argv )
@@ -103,11 +107,14 @@ int main ( int argc, char** argv )
         // 所以上面是算epipolar constraint里的每一项
         // 因此Point2d应该是图像坐标系的值
         // 之所以要归一化的原因：这里是essential matrix，所以输入是不带K的，要除去K的影响！
+        // 另外一个原因是，要想真正变成相机坐标系坐标，还要乘以depth，但是E本来scale就不定，所以没必要
         Point2d pt1 = pixel2cam ( keypoints_1[ m.queryIdx ].pt, K );
         Mat y1 = ( Mat_<double> ( 3,1 ) << pt1.x, pt1.y, 1 );
         Point2d pt2 = pixel2cam ( keypoints_2[ m.trainIdx ].pt, K );
         Mat y2 = ( Mat_<double> ( 3,1 ) << pt2.x, pt2.y, 1 );
         // 这个就是epipolar constraint的形式，这里为0就是好~
+        // c++这里是用.t()转置的啊, MatExpr cv::Mat::t	(		)	const
+        // 和cv::transpose(a,a)一样，参数是Inputmat, outputmat
         Mat d = y2.t() * t_x * R * y1;
         cout << "epipolar constraint = " << d << endl;
     }
@@ -171,7 +178,7 @@ void find_feature_matches ( const Mat& img_1, const Mat& img_2,
     }
 }
 
-// 归一化图像坐标系的值
+// 归一化图像坐标系的值，仍然是2D的！
 Point2d pixel2cam ( const Point2d& p, const Mat& K )
 {
     return Point2d
@@ -209,7 +216,6 @@ void pose_estimation_2d2d (
     // 对！只需要坐标值~
     vector<Point2f> points1;
     vector<Point2f> points2;
-
     for ( int i = 0; i < ( int ) matches.size(); i++ )
     {
         // 这里的取样方式很特别，可以研究下~
@@ -221,7 +227,7 @@ void pose_estimation_2d2d (
     }
 
     //-- 计算基础矩阵
-    // 直接调用opencv3的函数，输入只需要匹配的特征点！因为就是解线性方程组~
+    // 直接调用opencv3的calib3d函数，输入只需要匹配的特征点！因为就是解线性方程组~
     // 这里不用内参，因为不是归一化的结果~
     Mat fundamental_matrix;
     // method变量！CV_FM_8POINT for an 8-point algorithm，可以的~
@@ -237,23 +243,32 @@ void pose_estimation_2d2d (
     // 输入匹配的特征点，还需要内参的信息，也就是事先标定好的情况
     // 所以在这里面其实隐含了第一步要对图像坐标系的值归一化！
     // 这里倒是没有specify用的什么算法，也有method，默认是RANSAC
+    // 这里倒是没有用fundmental matrix求essential
     essential_matrix = findEssentialMat ( points1, points2, focal_length, principal_point );
     cout<<"essential_matrix is "<<endl<< essential_matrix<<endl;
 
     //-- 计算单应矩阵
     // 这里不需要内参，说明要求不高，其实就是图像坐标系的点之间的变换关系~
-    // 所以这个在HW3才会大量用到，因为我们是将一张图转成投影变换后的另一张图~
+    // 所以这个在CV_HW3才会大量用到，因为我们是将一张图转成投影变换后的另一张图~
     Mat homography_matrix;
     // 3是ransacReprojThreshold
+    // 这里有一个有意思的地方，因为homography只对平面有效，因此在这里会先用RANSAC找到最大的面
+    // 然后根据这个面里的Inliers来计算homography matrix!
     homography_matrix = findHomography ( points1, points2, RANSAC, 3 );
-    // TO-DO: 原理理解了，但是这里为啥H_31,H_32≈0，这样不就变成affine了？？？
+    // 原理理解了，但是这里为啥H_31,H_32≈0，这样不就变成affine了？？？
     // 测试了几个其他的，一样的结果，都为0，看来还没完全理解！
+    // 理解了！用自己写的code再来算下homography_matrix，也是一样的结果
+    // H_31,H_32的数值都非常小！一般都是10^-4级别的，但是不为0！
+    // 问题：为何这么小呢？因为H_31*u_x+H_32*u_y+1=V_z，而V_z一般大概为1,u在0-2000，因此得证！
+    // 太棒啦！！
     cout<<"homography_matrix is "<<endl<<homography_matrix<<endl;
 
     //-- 从本质矩阵中恢复旋转和平移信息.
     // 恩恩，果然这个也是直接调函数，输入是本质矩阵，匹配的特征点？，内参？（为啥要这些？），输出是R,T
     // 原因：E具有尺度不确定性，因此只能获得t的方向，无法得知大小
     // 要想获得具体的大小，必须输入真实世界的scale作为reference!
+    // TO-DO: 有机会这些函数都自己去写下，implement一下底层的写法！
+    // 对，这样之后才能对哪个的性能好坏有自己的判断！
     recoverPose ( essential_matrix, points1, points2, R, t, focal_length, principal_point );
     cout<<"R is "<<endl<<R<<endl;
     cout<<"t is "<<endl<<t<<endl;
