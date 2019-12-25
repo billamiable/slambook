@@ -56,6 +56,7 @@ bool poseEstimationDirect ( const vector<Measurement>& measurements, cv::Mat* gr
 
 // project a 3d point into an image plane, the error is photometric error
 // an unary edge with one vertex SE3Expmap (the pose of camera)
+// 与前面很像，这里也是定义了新的g2o edge!
 class EdgeSE3ProjectDirect: public BaseUnaryEdge< 1, double, VertexSE3Expmap>
 {
 public:
@@ -67,6 +68,7 @@ public:
         : x_world_ ( point ), fx_ ( fx ), fy_ ( fy ), cx_ ( cx ), cy_ ( cy ), image_ ( image )
     {}
 
+    // 这个在哪里都有！哈哈！
     virtual void computeError()
     {
         const VertexSE3Expmap* v  =static_cast<const VertexSE3Expmap*> ( _vertices[0] );
@@ -86,6 +88,7 @@ public:
     }
 
     // plus in manifold
+    // TO-DO: 这里是关键！等这周过后，找时间把这个硬骨头啃下来！
     virtual void linearizeOplus( )
     {
         if ( level() == 1 )
@@ -154,6 +157,7 @@ public:
     cv::Mat* image_=nullptr;    // reference image
 };
 
+// 这里的思想其实很简单！
 int main ( int argc, char** argv )
 {
     if ( argc != 2 )
@@ -250,6 +254,7 @@ int main ( int argc, char** argv )
     return 0;
 }
 
+// TO-DO: 这里给的是g2o的实现，之后自己可以再做ceres的实现！
 bool poseEstimationDirect ( const vector< Measurement >& measurements, cv::Mat* gray, Eigen::Matrix3f& K, Eigen::Isometry3d& Tcw )
 {
     // 初始化g2o

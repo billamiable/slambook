@@ -77,7 +77,7 @@ int main( int argc, char** argv )
         // for the corresponding features has been found, otherwise, it is set to 0.
         // 因此，我猜第一帧的时候输入的last_color和color是一样的
         // 真正的track是从第二帧开始的！对，就是这样！
-        // TO-DO: 可是这样有点蠢啊。。能不能优化下
+        // TO-DO: 可是这样有点蠢啊。。能不能优化下 -- 好像也挺合理的
         // next_keypoints contains the calculated new positions of input features in the second image
         cv::calcOpticalFlowPyrLK( last_color, color, prev_keypoints, next_keypoints, status, error );
         chrono::steady_clock::time_point t2 = chrono::steady_clock::now();
@@ -108,8 +108,10 @@ int main( int argc, char** argv )
             // 这是没有跟丢的情况下！让Iter指向next_keypoints[i]，好奇怪啊！
             // 不对，是把keypoints里的值改成next_point里的，其实就是赋值拷贝的过程
             // 相当于写了一个if循环，如果track，就拷贝，否则就删掉
+            // 这个很简单，保证内存上存储的连续性！
             *iter = next_keypoints[i];
             // 这是正常情况下让iterator指向下一个
+            // 简单！
             iter++;
         }
         cout<<"tracked keypoints: "<<keypoints.size()<<endl;

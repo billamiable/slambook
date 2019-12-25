@@ -11,7 +11,8 @@ set( LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib )
 
 ############### dependencies ######################
 # Eigen
-include_directories( "/usr/include/eigen3" )
+# include_directories( "/usr/include/eigen3" )
+include_directories( "/usr/local/Cellar/eigen/3.3.5/include/eigen3" )
 # OpenCV
 find_package( OpenCV 3.1 REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )

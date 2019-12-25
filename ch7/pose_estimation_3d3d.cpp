@@ -74,7 +74,7 @@ public:
         double y = xyz_trans[1];
         double z = xyz_trans[2];
 
-        // Oplus类似卷积符号
+        // Oplus类似卷积符号，这里表示的是扰动！！！搜嘎！
         // TO-DO: 这个以后学习下吧，和Jacobian有关，3D2D里也留下了
         _jacobianOplusXi(0,0) = 0;
         _jacobianOplusXi(0,1) = -z;

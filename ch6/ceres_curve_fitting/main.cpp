@@ -12,7 +12,7 @@ using namespace std;
 // 代价函数的计算模型
 struct CURVE_FITTING_COST
 {
-    // 搞清楚_x的效用~
+    // 搞清楚_x的效用~ 本质就是一个变量定义，与外层同样意义的变量区分开
     // TO-DO: 这个还没理解，以后再说吧~
     CURVE_FITTING_COST ( double x, double y ) : _x ( x ), _y ( y ) {}
     // 残差的计算
@@ -36,7 +36,7 @@ struct CURVE_FITTING_COST
         const T* const abc,     // 模型参数，有3维
         T* residual ) const     // 残差
     {
-        // residual和abc都是指针，因此都要[0]才能表征值，这下都能理解了！哈哈！
+        // residual和abc都是指针，因此都要[0]才能表征值
         residual[0] = T ( _y ) - ceres::exp ( abc[0]*T ( _x ) *T ( _x ) + abc[1]*T ( _x ) + abc[2] ); // y-exp(ax^2+bx+c)
         return true;
     }

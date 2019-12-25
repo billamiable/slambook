@@ -72,6 +72,8 @@
     "hashtable": "cpp",
     "variant": "cpp",
     "core": "cpp",
-    "hash_map": "cpp"
-  }
+    "hash_map": "cpp",
+    "random": "cpp"
+  },
+  "C_Cpp.errorSquiggles": "Disabled"
 }
