@@ -1,4 +1,4 @@
-###习题解答
+**习题解答**
 
 1、有线性方程 Ax = b,当我们知道A，b，想要求解x时，如何求解？这对 A 和 b 需要哪些条件？提示：从 A 的维度和秩角度来分析。
 
@@ -20,4 +20,4 @@
 
 结合Ax=0和Ax=b的求解，发现以上四种情形中，第2和3种情况下Ax=b必有解，由于行满秩，必能张成n维向量空间，因此b一定属于A的列空间；而第1和4种情况下Ax=b则不一定有解。综上，结论如下：
 
-![](/Users/wangyujie/Desktop/iProud/iCourse/US/Visual_SLAM_Fourteen/slambook/ch1/Ax=b.png)
+![](./Ax=b.png)
