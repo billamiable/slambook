@@ -10,7 +10,7 @@ list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules )
 # include_directories( "/usr/include/eigen3" )
 
 # in osx and brew install
-include_directories( /usr/local/Cellar/eigen/3.3.5/include/eigen3 )
+include_directories( /usr/local/Cellar/eigen/3.3.7/include/eigen3 )
 
 # sophus 
 find_package( Sophus REQUIRED )

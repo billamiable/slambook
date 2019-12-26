@@ -17,7 +17,7 @@ include_directories(
     ${G2O_INCLUDE_DIRS}
     ${CSPARSE_INCLUDE_DIR}
     # "/usr/include/eigen3/"
-    /usr/local/Cellar/eigen/3.3.5/include/eigen3
+    /usr/local/Cellar/eigen/3.3.7/include/eigen3
 )
 
 add_executable( feature_extraction feature_extraction.cpp  )

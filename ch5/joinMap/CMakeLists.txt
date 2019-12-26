@@ -12,7 +12,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 # include_directories( "/usr/include/eigen3/" )
 
 # in osx and brew install
-include_directories( /usr/local/Cellar/eigen/3.3.5/include/eigen3 )
+include_directories( /usr/local/Cellar/eigen/3.3.7/include/eigen3 )
 
 
 # pcl 
