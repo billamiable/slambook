@@ -143,3 +143,6 @@ target_link_libraries (usehelloSLAM ${HELLO_LIBRARIES})
 - g++参数：https://www.jianshu.com/p/40ac8313eb7f
 - g++参数：https://www.cnblogs.com/lidan/archive/2011/05/25/2239517.html
 - g++编译原理：https://blog.csdn.net/elfprincexu/article/details/45043971
+- cmake install写法：https://zhuanlan.zhihu.com/p/51391675
+- cmake install用法：https://stackoverflow.com/questions/50047946/how-do-you-fix-cmake-make-install-no-rule-to-make-target-install
+- find_package用法：https://blog.csdn.net/haluoluo211/article/details/80559341
