@@ -20,6 +20,7 @@ int main( int argc, char** argv )
 
     // 同时，Eigen 通过 typedef 提供了许多内置类型，不过底层仍是Eigen::Matrix
     // 例如 Vector3d 实质上是 Eigen::Matrix<double, 3, 1>，即三维向量
+    // 因此，默认数据类型为double
     Eigen::Vector3d v_3d;
 	  
     // 这是不一样的，表示float数据类型
@@ -36,13 +37,12 @@ int main( int argc, char** argv )
     // 下面是对Eigen阵的操作
     // 输入数据（初始化）
     matrix_23 << 1, 2, 3, 4, 5, 6;
-    // 输出
     cout << matrix_23 << endl;
 
     // 用()访问矩阵中的元素
     for (int i=0; i<2; i++) {
         for (int j=0; j<3; j++)
-            // \t means horizontal tab
+            // "\t" means horizontal tab
             cout<<matrix_23(i,j)<<"\t";
         cout<<endl;
     }
@@ -50,7 +50,7 @@ int main( int argc, char** argv )
     // 矩阵和向量相乘（实际上仍是矩阵和矩阵）
     v_3d << 3, 2, 1;
     vd_3d << 4,5,6;
-    // 但是在Eigen里你不能混合两种不同类型的矩阵，像这样是错的
+    // 但是在Eigen里你不能混合两种不同数据类型的矩阵，像这样是错的，分别是float和double
     // Eigen::Matrix<double, 2, 1> result_wrong_type = matrix_23 * v_3d;
     // 应该显式转换
     Eigen::Matrix<double, 2, 1> result = matrix_23.cast<double>() * v_3d;
@@ -67,9 +67,11 @@ int main( int argc, char** argv )
 
     // 一些矩阵运算
     // 四则运算就不演示了，直接用+-*/即可。
-    // not quite clear why using ::
+    // 问题：not quite clear why using ::
+    // ::是eigen的定义方式，表明作用域
     // random is from -1 to 1
     matrix_33 = Eigen::Matrix3d::Random();      // 随机数矩阵
+    cout << "--------------------------" << endl;
     cout << matrix_33 << endl << endl;
 
     cout << matrix_33.transpose() << endl;      // 转置
@@ -103,7 +105,8 @@ int main( int argc, char** argv )
     cout <<"time use in normal inverse is " << 1000* (clock() - time_stt)/(double)CLOCKS_PER_SEC << "ms"<< endl;
     
 	  // 通常用矩阵分解来求，例如QR分解，速度会快很多
-    // a little confused, QR分解好像和施密特正交化有关系
+    // QR分解来源于施密特正交化，本质变成A=QR，其中Q是正交矩阵，R是上三角矩阵
+    // 上三角代表了逐一正交化的过程
     time_stt = clock();
     x = matrix_NN.colPivHouseholderQr().solve(v_Nd);
     cout <<"time use in Qr decomposition is " <<1000*  (clock() - time_stt)/(double)CLOCKS_PER_SEC <<"ms" << endl;

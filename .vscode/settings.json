@@ -73,7 +73,8 @@
     "variant": "cpp",
     "core": "cpp",
     "hash_map": "cpp",
-    "random": "cpp"
+    "random": "cpp",
+    "numericaldiff": "cpp"
   },
   "C_Cpp.errorSquiggles": "Disabled"
 }
