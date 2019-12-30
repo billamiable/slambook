@@ -6,7 +6,7 @@
 
 具体证明过程见下图，答案来源为：https://www.xlmaverick.me/post/%E4%B8%89%E7%BB%B4%E7%A9%BA%E9%97%B4%E7%9A%84%E5%88%9A%E4%BD%93%E8%BF%90%E5%8A%A8/
 
-![](./R*R^T=I.png)
+![](R*R^T=I.png)
 
 2、寻找罗德里格斯公式的推导过程并理解它。
 
