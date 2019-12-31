@@ -125,10 +125,74 @@ time use in Cholesky decomposition is 0.047ms
 ```
 
 
-7、设有小萝卜一号和小萝卜二号位于世界坐标系中。小萝卜一号的位姿为:q1 = [0.35, 0.2, 0.3, 0.1]，t2 = [0.3, 0.1, 0.1]^T (q 的第一项为实部。请你把 q 归一化后再 进行计算)。这里的 q 和 t 表达的是 Tcw，也就是世界到相机的变换关系。小萝卜二 号的位姿为q2 =[−0.5,0.4,−0.1,0.2]，t=[−0.1,0.5,0.3]^T。现在，小萝卜一号看到某个点在自身的坐标系下，坐标为 p = [0.5, 0, 0.2]^T ，求该向量在小萝卜二号坐标系下的坐标。请编程实现此事。
+7、设有小萝卜一号和小萝卜二号位于世界坐标系中。小萝卜一号的位姿为：q1 = [0.35, 0.2, 0.3, 0.1]，t1 =  	[0.3, 0.1, 0.1]^T (q 的第一项为实部。请你把 q 归一化后再进行计算)。这里的 q 和 t 表达的是 Tcw，也就是世界到相机的变换关系。小萝卜二 号的位姿为：q2 = [−0.5,0.4,−0.1,0.2]，t2 = [−0.1,0.5,0.3]^T。现在，小萝卜一号看到某个点在自身的坐标系下，坐标为 p = [0.5, 0, 0.2]^T ，求该向量在小萝卜二号坐标系下的坐标。请编程实现此事。
 
+```cpp
+// 坐标变换
+Eigen::Quaterniond q1(0.35, 0.2,  0.3, 0.1);
+cout << "quaternion 1 = \n" << q1.coeffs() << endl;
+Eigen::Quaterniond q2(-0.5, 0.4, -0.1, 0.2);
+cout << "quaternion 2 = \n" << q2.coeffs() << endl;
+q1.normalize(); // remember to normalize
+q2.normalize();
+cout << "normalized quaternion 1 = \n" << q1.coeffs() << endl;
+cout << "normalized quaternion 2 = \n" << q2.coeffs() << endl;
+Eigen::Vector3d t1(0.3, 0.1, 0.1), t2(-0.1, 0.5, 0.3);
+    
+// 注意下标，T1w表示world to 1！
+Eigen::Isometry3d T1w(q1); // 初始化方法一
+// Eigen::Isometry3d T1w(q1.toRotationMatrix()); // 初始化方法二
+// Eigen::Isometry3d T1w = Eigen::Isometry3d::Identity(); 
+// T1w.rotate(q1.toRotationMatrix()); // 初始化方法三
+T1w.pretranslate(t1);
+cout << "Transform matrix 1 = \n" << T1w.matrix() <<endl;
+// world to 2
+Eigen::Isometry3d T2w(q2);
+T2w.pretranslate(t2);
+cout << "Transform matrix 2 = \n" << T2w.matrix() <<endl;
 
+Eigen::Vector3d p1(0.5, 0, 0.2);
+// first from 1 to world, then world to 2
+Eigen::Vector3d p2 = T2w * T1w.inverse() * p1; 
+cout << "coordinate in camera 2 is \n" << p2.transpose() << endl;
+```
 
+terminal output
+
+```bash
+quaternion 1 = 
+ 0.2
+ 0.3
+ 0.1
+0.35
+quaternion 2 = 
+ 0.4
+-0.1
+ 0.2
+-0.5
+normalized quaternion 1 = 
+0.39036
+0.58554
+0.19518
+0.68313
+normalized quaternion 2 = 
+ 0.589768
+-0.147442
+ 0.294884
+ -0.73721
+Transform matrix 1 = 
+  0.238095   0.190476   0.952381        0.3
+   0.72381   0.619048  -0.304762        0.1
+ -0.647619   0.761905 0.00952381        0.1
+         0          0          0          1
+Transform matrix 2 = 
+ 0.782609   0.26087  0.565217      -0.1
+-0.608696  0.130435  0.782609       0.5
+ 0.130435 -0.956522   0.26087       0.3
+        0         0         0         1
+coordinate in camera 2 is 
+-0.0309731    0.73499   0.296108
+```
 
 # 参考文献
 
@@ -137,4 +201,5 @@ time use in Cholesky decomposition is 0.047ms
 - 四元数旋转证明：https://blog.csdn.net/gxsheen/article/details/79156817
 - Eigen提取block：https://blog.csdn.net/jiahao62/article/details/80655542
 - Eigen提取block：https://www.cnblogs.com/newneul/p/8306430.html
-- 
+- 坐标变换：https://www.xlmaverick.me/post/%E4%B8%89%E7%BB%B4%E7%A9%BA%E9%97%B4%E7%9A%84%E5%88%9A%E4%BD%93%E8%BF%90%E5%8A%A8/
+- 坐标变换：https://blog.csdn.net/jiahao62/article/details/80655542
