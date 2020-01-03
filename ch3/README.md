@@ -6,13 +6,13 @@
 
 具体证明过程见下图，答案来源为：https://www.xlmaverick.me/post/%E4%B8%89%E7%BB%B4%E7%A9%BA%E9%97%B4%E7%9A%84%E5%88%9A%E4%BD%93%E8%BF%90%E5%8A%A8/
 
-![](R*R^T=I.png)
+![](image/R*R^T=I.png)
 
 2、寻找罗德里格斯公式的推导过程并理解它。
 
 摘取了在伯克利计算机视觉课程作业的解答，其中reformulate the equation (1)应该改为(5)。
 
-![](Rodrigues.png)
+![](image/Rodrigues.png)
 
 以上方法是基于Taylor展开的方式，也有方法是基于坐标轴的旋转表示，请见https://zhuanlan.zhihu.com/p/31775921。
 
@@ -23,7 +23,7 @@
 
 4、画表总结旋转矩阵、轴角、欧拉角、四元数的转换关系。
 
-![](rotation_representation.png)
+![](image/rotation_representation.png)
 
 
 5、假设我有一个大的Eigen矩阵，我想把它的左上角 3 × 3 的块取出来，然后赋值为I_3×3。请编程实现此事。
