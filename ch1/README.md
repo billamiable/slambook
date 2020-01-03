@@ -24,10 +24,12 @@
 2、高斯分布是什么？它的一维形式是什么样子？它的高维形式是什么样子？
 
 - 一维高斯分布：
-![](https://www.zhihu.com/equation?tex=p%28x%29+%3D+%5Cfrac%7B1%7D%7B%5Csqrt%7B2%5Cpi%7D%7D+%5Cexp+%5Cleft%28+-%5Cfrac%7Bx%5E2%7D%7B2%7D+%5Cright%29)
+
+![](image/1d_gauss.png)
 
 - 高维高斯分布：
-![](https://www.zhihu.com/equation?tex=p%28%5Cmathbf%7Bx%7D%29+%3D+%5Cfrac%7B1%7D%7B2%5Cpi%7C%5CSigma%7C%5E%7B1%2F2%7D%7D+%5Cexp+%5Cleft%5B+-%5Cfrac%7B1%7D%7B2%7D+%28%5Cmathbf%7Bx%7D+-+%5Cmu%29+%5ET+%5CSigma%5E%7B-1%7D+%28%5Cmathbf%7Bx%7D+-+%5Cmu%29+%5Cright%5D)
+
+![](image/high_d_gauss.png)
 
 3、你知道C++的类吗?你知道STL吗?你使用过它们吗?
 
