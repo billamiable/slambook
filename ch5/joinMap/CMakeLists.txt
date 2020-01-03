@@ -16,8 +16,10 @@ include_directories( /usr/local/Cellar/eigen/3.3.7/include/eigen3 )
 
 
 # pcl 
+# 用了component参数
 find_package( PCL REQUIRED COMPONENT common io )
 include_directories( ${PCL_INCLUDE_DIRS} )
+# 添加编译参数
 add_definitions( ${PCL_DEFINITIONS} )
 
 add_executable( joinMap joinMap.cpp )

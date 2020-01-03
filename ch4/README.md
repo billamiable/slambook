@@ -102,7 +102,14 @@
 
 两者的关系：The above signature selects Module mode. If no module is found the command falls back to Config mode, described below. This fall back is disabled if the MODULE option is given. 即在没有给定MODULE参数的情况下，首先使用Module mode，找不到则使用Config Mode。
 
-可用的参数：[version] [EXACT] [QUIET] [MODULE] [REQUIRED]等，具体解释请见官方文档。
+可用的参数：
+
+- [version]： requests a version with which the package found should be compatible. 要求找某一个版本的package。
+- [EXACT]：The EXACT option requests that the version be matched exactly. 必须找到对应版本的package。
+- [QUIET]：The QUIET option disables informational messages, including those indicating that the package cannot be found if it is not REQUIRED. 如果不是REQUIRED，没找到就不报信息了。
+- [MODULE]：If no module is found the command falls back to Config mode, described below. This fall back is disabled if the MODULE option is given. 控制了会不会fall back到Config Mode。
+- [REQUIRED]：The REQUIRED option stops processing with an error message if the package cannot be found. 表示必须要找到package。
+- [[COMPONENTS] [components...]]：A package-specific list of required components may be listed after the COMPONENTS option (or after the REQUIRED option if present). 表示必须要有的组件。
 
 
 # 参考文献

@@ -2,6 +2,7 @@ cmake_minimum_required( VERSION 2.8 )
 project( imageBasics )
 
 # 添加c++ 11标准支持
+# 用了nullptr和chrono
 set( CMAKE_CXX_FLAGS "-std=c++11" )
 
 # 寻找OpenCV库

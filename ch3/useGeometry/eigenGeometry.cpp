@@ -50,6 +50,8 @@ int main ( int argc, char** argv )
     Eigen::Isometry3d T=Eigen::Isometry3d::Identity();    // 虽然称为3d，实质上是4＊4的矩阵
     // 通过调用成员函数的方式来赋值
     T.rotate ( rotation_vector );                         // 按照rotation_vector进行旋转
+    // pretranslate函数用于inital position setting
+    // Applies on the right the translation matrix represented by the vector
     T.pretranslate ( Eigen::Vector3d ( 1,3,4 ) );         // 把平移向量设成(1,3,4)
     cout << "Transform matrix = \n" << T.matrix() <<endl;
 
