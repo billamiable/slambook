@@ -12,21 +12,26 @@
 #include <chrono>
 using namespace std; 
 
-// TO-DO: 整体也理解了~这个部分应该是模板的定义方式
+// 从g2o的BaseVertex父类中派生出子类
 // 曲线模型的顶点，模板参数：优化变量维度和数据类型
 class CurveFittingVertex: public g2o::BaseVertex<3, Eigen::Vector3d>
 {
 public:
+    // If you define a structure having members of fixed-size vectorizable Eigen types, 
+    // you must overload its "operator new" so that it generates 16-bytes-aligned pointers. 
+    // Fortunately, Eigen provides you with a macro EIGEN_MAKE_ALIGNED_OPERATOR_NEW that does that for you.
+    // 结构体包含eigen成员，必须进行宏定义 EIGEN_MAKE_ALIGNED_OPERATOR_NEW, 保证内存对齐
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    // 这里用到了虚函数
-    virtual void setToOriginImpl() // 重置
+    virtual void setToOriginImpl() // 利用虚函数重载函数
     {   
-        // 初始值设置，那是不是一开始设置得好一些，G-N就可以了？
-        // 震惊了！初值直接设置成真值，用GN也发散了。。
-        // g2o的G-N实现的不太好，通常用g2o都是L-M或dogleg
-        _estimate << 1.1,2.1,1.1;
+        // 初始值设置
+        // 发现：初值直接设置成真值，用GN也发散了。。
+        // 结论：g2o的GN实现的不太好，通常用g2o都是LM或dogleg优化
+        _estimate << 0,0,0;
     }
     
+    // 定义增量方程里的加法，这里很简单，直接向量相加
+    // 但是有的时候需要自定义加法，比如位姿相加
     virtual void oplusImpl( const double* update ) // 更新
     {
         _estimate += Eigen::Vector3d(update);
@@ -36,24 +41,27 @@ public:
     virtual bool write( ostream& out ) const {}
 };
 
+// 由于在曲线拟合中，待估计的参数只有abc，用数组表示，只用到了一个node，因此是一元边（UnaryEdge）
+// 从g2o的BaseUnaryEdge父类中派生出子类
 // 误差模型 模板参数：观测值维度，类型，连接顶点类型
 class CurveFittingEdge: public g2o::BaseUnaryEdge<1,double,CurveFittingVertex>
 {
 public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW // 内存对齐
     CurveFittingEdge( double x ): BaseUnaryEdge(), _x(x) {}
     // 计算曲线模型误差
     void computeError()
     {
+        // static_cast类型转换，因为用到了继承
         const CurveFittingVertex* v = static_cast<const CurveFittingVertex*> (_vertices[0]);
-        const Eigen::Vector3d abc = v->estimate();
-        // 这里是计算误差项
+        const Eigen::Vector3d abc = v->estimate(); // Matrix<double,3,1>，所以有两个维度
+        // 这里是计算误差项，y值为_measurement，表示ground truth
         _error(0,0) = _measurement - std::exp( abc(0,0)*_x*_x + abc(1,0)*_x + abc(2,0) ) ;
     }
     virtual bool read( istream& in ) {}
     virtual bool write( ostream& out ) const {}
 public:
-    double _x;  // x 值， y 值为 _measurement
+    double _x;  // x 值
 };
 
 int main( int argc, char** argv )
@@ -76,43 +84,40 @@ int main( int argc, char** argv )
         );
         cout<<x_data[i]<<" "<<y_data[i]<<endl;
     }
-    // 前面和ceres都一样
     
-    // 以下这部分是基础的g2o构建方法
     // 构建图优化，先设定g2o
-    // 这里由于求解问题不是SLAM，所以不一样。
-    // 如果是SLAM，Block_Solver_6_3，对应z-g(x,y)中x,y的维度分别是6,3
-    typedef g2o::BlockSolver< g2o::BlockSolverTraits<3,1> > Block;  // 每个误差项优化变量维度为3，误差值维度为1
-    Block::LinearSolverType* linearSolver = new g2o::LinearSolverDense<Block::PoseMatrixType>(); // 线性方程求解器
+    // 矩阵块：每个误差优化变量维度为4，误差值维度为1
+    typedef g2o::BlockSolver< g2o::BlockSolverTraits<3,1> > Block;
+    // 线性方程求解器：稠密的增量方程
+    Block::LinearSolverType* linearSolver = new g2o::LinearSolverDense<Block::PoseMatrixType>();
     Block* solver_ptr = new Block( linearSolver );      // 矩阵块求解器
     // 梯度下降方法，从GN, LM, DogLeg 中选
-    // LM可以收敛，GN不收敛，DogLeg收敛且快！
+    // 发现：LM可以收敛，GN不收敛，DogLeg收敛且快！
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg( solver_ptr );
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr );
     // g2o::OptimizationAlgorithmDogleg* solver = new g2o::OptimizationAlgorithmDogleg( solver_ptr );
-    // printf("using LM!!!!!!!!!!!!!!!!!!!!!!!!");
     g2o::SparseOptimizer optimizer;     // 图模型
     optimizer.setAlgorithm( solver );   // 设置求解器
     optimizer.setVerbose( true );       // 打开调试输出
     
-    // 这里涉及到程序开头的curve定义！
     // 往图中增加顶点
     CurveFittingVertex* v = new CurveFittingVertex();
     v->setEstimate( Eigen::Vector3d(0,0,0) );
-    // 注意：这里每个都要id，也不理解为啥？
+    // 设置id，应该是当系统大了的时候用作区分
     v->setId(0);
-    // 理解了，本质上每一个线性优化问题都可以表征成图的形式
     optimizer.addVertex( v );
     
-    // 对于边来说，与ceres一样，也可以加入核函数~只需要设置一下就可以了~
     // 往图中增加边
+    // 对于边，与ceres一样可以加入核函数，只需要设置一下
     for ( int i=0; i<N; i++ )
     {
         CurveFittingEdge* edge = new CurveFittingEdge( x_data[i] );
         edge->setId(i);
+        // 由于这里本身只有一个node，因此设置一个0 node
         edge->setVertex( 0, v );                // 设置连接的顶点，这个很重要，就是残差相减的两项
         edge->setMeasurement( y_data[i] );      // 观测数值
-        edge->setInformation( Eigen::Matrix<double,1,1>::Identity()*1/(w_sigma*w_sigma) ); // 信息矩阵：协方差矩阵之逆，恩恩，就按照公式来feed
+        // 信息矩阵：协方差矩阵之逆，按照公式来赋值即可
+        edge->setInformation( Eigen::Matrix<double,1,1>::Identity()*1/(w_sigma*w_sigma) );
         optimizer.addEdge( edge );
     }
     

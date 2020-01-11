@@ -46,6 +46,11 @@ make: *** [all] Error 2
 
 7、阅读《cmake实践》,了解cmake的其他语法。
 
+cmake设置变量的方式有两种：
+
+- set：set( VARIABLE_NAME "INPUT_STRING"/Path )
+- list：list( APPEND VARIABLE_NAME "INPUT_STRING"/Path )
+
 8、完善hello SLAM的小程序，把它做成一个小程序库，安装到本地硬盘中。然后，新建一个工程，使用             找这个库并调用它。
 
 安装到本地硬盘方法：
