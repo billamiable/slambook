@@ -49,26 +49,25 @@ int main ( int argc, char** argv )
 
     vector<KeyPoint> keypoints_1, keypoints_2;
     vector<DMatch> matches;
-    // 匹配对只是从RGB图里找
+    // 匹配对只是从RGB图里找，深度图作为3D坐标值来源
     find_feature_matches ( img_1, img_2, keypoints_1, keypoints_2, matches );
     cout<<"一共找到了"<<matches.size() <<"组匹配点"<<endl;
 
     // 建立3D点，这是世界坐标系的坐标
     // 问题：不需要第2个view的depth图？
-    // 原因：一般assume first image是世界坐标系，因此对于3d2d只需要之后的2d坐标即可！
+    // 原因：3D2D求解，一般assume first image是世界坐标系，因此只需要second image的2d坐标即可！
     Mat d1 = imread ( argv[3], CV_LOAD_IMAGE_UNCHANGED ); // 深度图为16位无符号数，单通道图像
     Mat K = ( Mat_<double> ( 3,3 ) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1 );
     // 用于存储世界坐标系的3D点
     vector<Point3f> pts_3d;
     vector<Point2f> pts_2d;
-    // 这里本质是做好solve_pnp的输入
-    // 分别是2d和3d的匹配对，其中3d即为第1个view的世界坐标系值
+    // 准备solve_pnp的输入，分别是2d和3d的匹配对，其中3d即为第1个view的世界坐标系下的坐标值
     for ( DMatch m:matches )
     {
-        // 注意：()[]是基本的mat操作，取数据值的方法
-        // 备注：Lambda expression是[]()
-        // 具体：首先定义了一个指针d1.ptr<..> (int i)，表示第i行
-        // 然后根据首地址，取其中的元素，直接调取第j个元素即可！最终获得了深度值~
+        // ()[]是基本的mat操作，取数据值的方法
+        // []()是Lambda expression
+        // 首先定义了一个指针d1.ptr<..> (int i)，表示第i行
+        // 然后根据首地址，取其中的元素，直接调取第j个元素，从而获得了深度值
         ushort d = d1.ptr<unsigned short> (int ( keypoints_1[m.queryIdx].pt.y )) [ int ( keypoints_1[m.queryIdx].pt.x ) ];
         // VIP：depth异常值处理，直接跳过
         if ( d == 0 )   // bad depth
@@ -92,8 +91,8 @@ int main ( int argc, char** argv )
     // InputArray是_InputArray (const Mat &m)，加了const保证不能修改输入
     // 输入需要intrinsic matrix，用于投影变换
     // 其中，Mat()对应distortion matrix
-    // 默认方法：SOLVEPNP_EPNP，这个的确不好解，结果不稳定！
-    // TO-DO: 回头自己也重新写下底层的
+    // 默认方法：SOLVEPNP_EPNP，这个不好解，结果不稳定！
+    // TO-DO: 回头自己也重新写下底层的实现
     solvePnP ( pts_3d, pts_2d, K, Mat(), r, t, false ); // 调用OpenCV 的 PnP 求解，可选择EPNP，DLS等方法
     // 输出的r是一个向量
     cout<<"r: "<<r<<" t: "<<t<<endl;
@@ -114,15 +113,14 @@ int main ( int argc, char** argv )
 
     cout<<"calling bundle adjustment"<<endl;
     // 问题: PNP问题不就是用ba解的吗？为何重复两次操作？
-    // 一般是拿普通解法得到一个好的初值，用BA做进一步优化
+    // 一般是拿普通解法（如P3P或EPNP）得到一个好的初值，用BA做进一步优化
     // 如果直接用BA会报segment fault:11，是内存用尽
     // 说明初值给的不好，无法收敛
-    // Mat R,t;
-    // 有意思的是，每次优化的结果是一样的，这个厉害了！
-    // 最后结果差得不多，solvepnp的结果已经不错了！
+    // 有意思的是，每次优化的结果是一样的，
+    // 而且BA后结果差得不多，说明solvepnp的结果已经不错了！
     bundleAdjustment ( pts_3d, pts_2d, K, R, t );
     
-    // 衡量下reprojection error的量级——Pixel级
+    // reprojection error的单位为Pixel
     float avg_err;
     float error = 0;
     for ( int i=0; i<pts_3d.size(); i++ )
@@ -137,6 +135,7 @@ int main ( int argc, char** argv )
         error += e;
     }
     // 误差量级大概是横竖各差1.5个pixel
+    // 那比2D2D要多啊，之前是0.5个pixel
     avg_err = error / pts_3d.size();
     cout<<"average error is "<<avg_err<<endl;
 }
@@ -212,7 +211,6 @@ Point2d cam2pixel ( const Mat& p, const Mat& K )
 }
 
 // 用到了g2o求解器
-// TO-DO: 之后得再理解下vertex和edge如何生成
 void bundleAdjustment (
     const vector< Point3f > points_3d,
     const vector< Point2f > points_2d,
@@ -224,7 +222,8 @@ void bundleAdjustment (
     typedef g2o::BlockSolver< g2o::BlockSolverTraits<6,3> > Block;  // pose 维度为 6, landmark 维度为 3
     Block::LinearSolverType* linearSolver = new g2o::LinearSolverCSparse<Block::PoseMatrixType>(); // 线性方程求解器
     Block* solver_ptr = new Block ( linearSolver );     // 矩阵块求解器
-    // TO-DO: 从结果上来看，3D2D这个问题比3D3D要难，3D2D必须首先给定初值，有好的初值最好
+    // 从结果上来看，3D2D比3D3D要难，3D2D必须要给定好的初值，而3D3D要求很宽松
+    // 从原理上，是因为ICP的极小值就是全局最优值，因此可以任意选择初值
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr );
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg ( solver_ptr );
     g2o::SparseOptimizer optimizer;
@@ -244,8 +243,7 @@ void bundleAdjustment (
                R.at<double> ( 0,0 ), R.at<double> ( 0,1 ), R.at<double> ( 0,2 ),
                R.at<double> ( 1,0 ), R.at<double> ( 1,1 ), R.at<double> ( 1,2 ),
                R.at<double> ( 2,0 ), R.at<double> ( 2,1 ), R.at<double> ( 2,2 );
-    // 首先设置Id
-    pose->setId ( 0 );
+    pose->setId ( 0 ); // 首先设置Id
     // Quat就是quaternion，四元数
     // sets the initial estimate from an array of double
     // 此处需要外界的初始化，因此必须先用solvepnp
@@ -270,7 +268,7 @@ void bundleAdjustment (
         point->setId ( index++ );
         // 设置初始值，将landmark坐标赋值
         point->setEstimate ( Eigen::Vector3d ( p.x, p.y, p.z ) );
-        // TO-DO: 等之后研究，就是marginalization
+        // TO-DO: 等之后研究，即为marginalization
         point->setMarginalized ( true ); // g2o 中必须设置 marg 参见第十讲内容
         // 最后加到optimizer里去
         optimizer.addVertex ( point );
@@ -278,7 +276,7 @@ void bundleAdjustment (
 
     // parameter: camera intrinsics
     g2o::CameraParameters* camera = new g2o::CameraParameters (
-        // f + cx,cy 默认fx=fy
+        // f和(cx,cy)，默认fx=fy
         K.at<double> ( 0,0 ), Eigen::Vector2d ( K.at<double> ( 0,2 ), K.at<double> ( 1,2 ) ), 0
     );
     camera->setId ( 0 );
@@ -288,11 +286,9 @@ void bundleAdjustment (
     index = 1;
     for ( const Point2f p:points_2d )
     {
-        // TO-DO:这里的具体还是要再看一下，总体的意思已经清楚了
         // 重投影误差边类EdgeProjectXYZ2UV
         // 把XYZ投影到UV平面上，做成了一个误差
         // 在这里有一个computeError函数，可以看到reprojection error的定义！
-        // TO-DO: 里面有雅克比矩阵的计算，看一遍原理后，再来理解下！
         g2o::EdgeProjectXYZ2UV* edge = new g2o::EdgeProjectXYZ2UV();
         // 设置Id
         edge->setId ( index );
@@ -308,7 +304,7 @@ void bundleAdjustment (
 
     // 最后求解
     chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
-    optimizer.setVerbose ( true ); // 这个不理解
+    optimizer.setVerbose ( true ); // 打开调试输出
     optimizer.initializeOptimization();
     optimizer.optimize ( 100 );
     chrono::steady_clock::time_point t2 = chrono::steady_clock::now();
@@ -319,7 +315,7 @@ void bundleAdjustment (
     cout<<"Transformation matrix="<<endl<<Eigen::Isometry3d ( pose->estimate() ).matrix() <<endl;
     // assign value to R,T
     Eigen::Matrix4d output = Eigen::Isometry3d( pose->estimate() ).matrix();
-    Eigen::Matrix3d R_out = output.block(0,0,3,3);
+    Eigen::Matrix3d R_out = output.block(0,0,3,3); // 利用Eigen的block函数获取子矩阵
     Eigen::Vector3d T_out = output.block(0,3,3,4);
     cout<<"R_out="<<endl<<R_out<<endl;
     cout<<"T_out="<<endl<<T_out<<endl;

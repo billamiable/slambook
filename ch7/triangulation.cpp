@@ -19,7 +19,6 @@ void pose_estimation_2d2d (
     const std::vector< DMatch >& matches,
     Mat& R, Mat& t );
 
-// 关键是这个函数~
 void triangulation (
     const vector<KeyPoint>& keypoint_1,
     const vector<KeyPoint>& keypoint_2,
@@ -29,6 +28,7 @@ void triangulation (
 );
 
 // 像素坐标转相机归一化坐标
+// 可以认为是去除了K的影响
 Point2f pixel2cam( const Point2d& p, const Mat& K );
 
 Point2d cam2pixel ( const Mat& p, const Mat& K );
@@ -51,38 +51,37 @@ int main ( int argc, char** argv )
 
     //-- 估计两张图像间运动
     Mat R,t;
-    // 说明是基于2d2d的~就是传统的8点法之类的~
+    // 基于2d2d的pose估计方法，即传统的8点法之类的
     pose_estimation_2d2d ( keypoints_1, keypoints_2, matches, R, t );
 
-    //-- 三角化，这个应该就是做一个3d lift!
-    // 关键是这个points是啥？是3D的坐标点，世界坐标系下的？
+    //-- 三角化
+    // 问题：points是3D的坐标点，是世界坐标系下的吗？
+    // 具有尺度不确定性，因此无法得知其表示的坐标系
     vector<Point3d> points;
     triangulation( keypoints_1, keypoints_2, matches, R, t, points );
     
     //-- 验证三角化点与特征点的重投影关系
-    // 哟，这个有意思啊
-    // 衡量下reprojection error的量级，最后就是Pixel级
+    // 衡量reprojection error的量级，以pixel为单位
     float avg_err;
     float error = 0;
     Mat K = ( Mat_<double> ( 3,3 ) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1 );
     for ( int i=0; i<matches.size(); i++ )
     {
+        // 由于有尺度不确定性，因此对两个结果均做归一化处理
         Point2d pt1_cam = pixel2cam( keypoints_1[ matches[i].queryIdx ].pt, K );
-        // 注意：这个是直接用得到的3d坐标算出来的
         Point2d pt1_cam_3d(
             points[i].x/points[i].z, 
             points[i].y/points[i].z 
         );
-        // correct!
-        // 这两个会尽量的接近，的确
+        // 以下两个结果应该会尽量得接近
         cout<<"point in the first camera frame: "<<pt1_cam<<endl;
         cout<<"point projected from 3D "<<pt1_cam_3d<<", d="<<points[i].z<<endl;
         
-        // 第二个图
-        // 这个是直接用第二个原生的计算
+        // 计算reprojection error
+        // 以下在图像坐标系下，故都不需要归一化
         Point2f pt2_pixel = keypoints_2[ matches[i].trainIdx ].pt;
         Point2f pt2_cam = pixel2cam( keypoints_2[ matches[i].trainIdx ].pt, K );
-        // 用了得到的R,T，将世界坐标系也就是第一个相机坐标系下的3D点转到了第二个相机下
+        // 用了得到的R,T，将世界坐标系也就是第一个相机坐标系下的3D点转到了第二个相机坐标系下
         Mat_<double> pt2_trans = R*( Mat_<double>(3,1) << points[i].x, points[i].y, points[i].z ) + t;
         // 又除以了depth，这样就得到了reproject过来的计算结果
         pt2_trans /= pt2_trans.at<double>(2,0);
@@ -90,21 +89,18 @@ int main ( int argc, char** argv )
         // add one more step, transformed to non-normalized version
         Point2d p1_2_2d = cam2pixel(pt2_trans, K);
 
-        // 所以这两个也会尽量的接近
+        // 所以这两个也会尽量得接近
         cout<<"point in the second camera frame: "<<pt2_cam<<endl;
         cout<<"point reprojected from second frame: "<<pt2_trans.t()<<endl;
         cout<<endl;
         // calculate error
-        // cout<<"hhh"<<pt2_trans.at<double> ( 0,0 )<<endl;
-        // cout<<"hhh"<<pt2_trans.at<double> ( 1,0 )<<endl;
-
         cout<<"point in the second camera frame: "<<pt2_pixel<<endl;
         cout<<"point reprojected from second frame: "<<p1_2_2d<<endl;
         float e = abs(pt2_pixel.x - p1_2_2d.x) + 
                   abs(pt2_pixel.y - p1_2_2d.y);
         error += e;
     }
-    // TO-DO: 量级大概是横竖各差0.5个pixel，这不科学啊！！
+    // 量级大概是横竖各差0.5个pixel
     // 在分析中，大家都只分析了3D-2D比3D-3D好，但没有3D-2D与2D-2D的关系
     avg_err = error / matches.size();
     cout<<"average error is "<<avg_err<<endl;
@@ -212,7 +208,7 @@ void triangulation (
     const Mat& R, const Mat& t, 
     vector< Point3d >& points )
 {
-    // 这个就是Pose的定义
+    // Pose的定义
     Mat T1 = (Mat_<float> (3,4) <<
         1,0,0,0,
         0,1,0,0,
@@ -228,19 +224,17 @@ void triangulation (
     vector<Point2f> pts_1, pts_2;
     for ( DMatch m:matches )
     {
-        // 将像素坐标转换至相机坐标，去掉depth后的归一化坐标
+        // 归一化图像坐标系的值，去掉K的影响
         pts_1.push_back ( pixel2cam( keypoint_1[m.queryIdx].pt, K) );
         pts_2.push_back ( pixel2cam( keypoint_2[m.trainIdx].pt, K) );
     }
     
     Mat pts_4d;
-    // 还有这样的函数！pts_4d是啥呢？
-    // Reconstructs points by triangulation.
+    // OpenCV内置函数：Reconstructs points by triangulation.
     // points4D – 4xN array of reconstructed points in homogeneous coordinates.
     // The function reconstructs 3-dimensional points (in homogeneous coordinates) 
     // by using their observations with a stereo camera.
-    // 我猜就是获得点的3d坐标，在第一个相机的相机坐标系下（认为是世界坐标系）~
-    // 这里未知量只有depth，所以解就好了，很简单的~
+    // 这里未知量只有depth，所以用线性解或者最小二乘解即可
     // 有了depth，自然就得到了3D的坐标值
     cv::triangulatePoints( T1, T2, pts_1, pts_2, pts_4d );
     
@@ -268,6 +262,7 @@ Point2f pixel2cam ( const Point2d& p, const Mat& K )
 }
 
 // change to uv coordinate
+// 与上面的pixel2cam正好相反
 Point2d cam2pixel ( const Mat& p, const Mat& K )
 {
     return Point2d

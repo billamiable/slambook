@@ -44,7 +44,7 @@ void bundleAdjustment(
 
 // g2o edge
 // 这里还专门自定义了g2o的一种边
-// TO-DO: 这是一种单元边unary edge，只需要连接一个vertex
+// 这是一种单元边unary edge，只需要连接一个vertex
 class EdgeProjectXYZRGBDPoseOnly : public g2o::BaseUnaryEdge<3, Eigen::Vector3d, g2o::VertexSE3Expmap>
 {
 public:
@@ -67,14 +67,15 @@ public:
         // estimate表示return the current estimate of the vertex
         // 因为是一个迭代的过程！这里的T表示Pose，而不仅仅表示translation matrix
         g2o::SE3Quat T(pose->estimate());
-        // map就是R*P+T
+        // map即为R*P+T
         Eigen::Vector3d xyz_trans = T.map(_point);
         double x = xyz_trans[0];
         double y = xyz_trans[1];
         double z = xyz_trans[2];
 
-        // Oplus类似卷积符号，这里表示的是扰动
-        // TO-DO: 这个以后学习下吧，和Jacobian有关，3D2D里也有相关的内容
+        // Oplus表示的是扰动模型
+        // 这里由于不涉及2D到3D的转换，所以结果即为书中式(7.44)
+        // 注意旋转与平移的前后顺序问题，与书中顺序不一样
         _jacobianOplusXi(0,0) = 0;
         _jacobianOplusXi(0,1) = -z;
         _jacobianOplusXi(0,2) = y;
@@ -100,7 +101,7 @@ public:
     bool read ( istream& in ) {}
     bool write ( ostream& out ) const {}
 
-// TO-DO: 为何定义为protected，以后再搞清楚一点！
+// TO-DO: 为何定义为protected？
 protected:
     Eigen::Vector3d _point;
 };
@@ -108,7 +109,7 @@ protected:
 // 可以看成是简化版的ICP，因为所有的点都是匹配好的
 // 但在真实的应用场景中，很多是没有匹配的，而且有的甚至都没有深度值！
 // 这个时候就需要结合PNP一起求解
-// 这也是为啥叫ICP的原因，而不是直接选择某个点，需要closest point
+// 这也是为啥叫ICP的原因，不是直接选择某个点，而是需要选择closest point
 int main ( int argc, char** argv )
 {
     if ( argc != 5 )
@@ -133,7 +134,6 @@ int main ( int argc, char** argv )
     vector<Point3f> pts1, pts2;
     for ( DMatch m:matches )
     {
-        // 这个就是前面的读取方式
         ushort d1 = depth1.ptr<unsigned short> ( int ( keypoints_1[m.queryIdx].pt.y ) ) [ int ( keypoints_1[m.queryIdx].pt.x ) ];
         ushort d2 = depth2.ptr<unsigned short> ( int ( keypoints_2[m.trainIdx].pt.y ) ) [ int ( keypoints_2[m.trainIdx].pt.x ) ];
         if ( d1==0 || d2==0 )   // bad depth
@@ -156,11 +156,11 @@ int main ( int argc, char** argv )
     // 对于Orthogonal matrix，transpose就是inverse
     // 原因：之前PNP是第一帧到第二帧的变换，但这里是第二帧到第一帧！
     cout<<"R_inv = "<<R.t() <<endl;
-    // 其实就是求了一个逆
+    // 直接取负不行，因为坐标系切换了，需要额外乘以R的逆来转换坐标系
     cout<<"t_inv = "<<-R.t() *t<<endl;
 
     cout<<"calling bundle adjustment"<<endl;
-    // ba里是算2->1，和这个code前面的定义一致
+    // ba里是算2->1
     bundleAdjustment( pts1, pts2, R, t );
     // verify p1 = R*p2 + t
     float avg_err;
@@ -239,7 +239,6 @@ Point2d pixel2cam ( const Point2d& p, const Mat& K )
 }
 
 // 第一种方法：解析方法！
-// TO-DO: 需要把代数求解思路写一遍
 void pose_estimation_3d3d (
     const vector<Point3f>& pts1,
     const vector<Point3f>& pts2,
@@ -248,7 +247,6 @@ void pose_estimation_3d3d (
 {
     Point3f p1, p2;     // center of mass，定义质心
     int N = pts1.size();
-    // loop
     for ( int i=0; i<N; i++ )
     {
         p1 += pts1[i];
@@ -282,7 +280,7 @@ void pose_estimation_3d3d (
     Eigen::Matrix3d V = svd.matrixV();
     
     // 行列式
-    // TO-DO: 感觉是对U进行特殊值处理
+    // TO-DO：工程上的处理，判断正负从而对U进行特殊处理
     if (U.determinant() * V.determinant() < 0)
 	  {
         for (int x = 0; x < 3; ++x)
@@ -322,7 +320,7 @@ void bundleAdjustment (
     typedef g2o::BlockSolver< g2o::BlockSolverTraits<6,3> > Block;  // pose维度为 6, landmark 维度为 3
     Block::LinearSolverType* linearSolver = new g2o::LinearSolverEigen<Block::PoseMatrixType>(); // 线性方程求解器
     Block* solver_ptr = new Block( linearSolver );      // 矩阵块求解器
-    // 有意思的是，这里好解！GN和LB的结果一样，3D2D里GN直接不收敛。。
+    // 有意思的是，这里好解！GN和LB的结果一样，3D2D里GN直接不收敛，因为ICP有解析解
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr );
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg ( solver_ptr );
     g2o::SparseOptimizer optimizer;
@@ -334,15 +332,13 @@ void bundleAdjustment (
                R.at<double> ( 0,0 ), R.at<double> ( 0,1 ), R.at<double> ( 0,2 ),
                R.at<double> ( 1,0 ), R.at<double> ( 1,1 ), R.at<double> ( 1,2 ),
                R.at<double> ( 2,0 ), R.at<double> ( 2,1 ), R.at<double> ( 2,2 );
-    // 必须用双引号！
+    // cout必须用双引号！
     // cout<<"R in BA: "<<R.at<double> ( 0,0 )<<" "<<R.at<double> ( 0,1 )<<" "<<R.at<double> ( 0,2 )<<endl;
     // cout<<"T in BA: "<<t.at<double> ( 0,0 )<<" "<<t.at<double> ( 1,0 )<<" "<<t.at<double> ( 2,0 )<<endl;
     g2o::VertexSE3Expmap* pose = new g2o::VertexSE3Expmap(); // camera pose
     pose->setId(0);
     pose->setEstimate( g2o::SE3Quat(
-        // 以下可选择，给不给之前SVD的初值
-        // R_mat,
-        // Eigen::Vector3d ( t.at<double> ( 0,0 ), t.at<double> ( 1,0 ), t.at<double> ( 2,0 ) )
+        // 这里没必要给初值，因为本来就是两种方法
         Eigen::Matrix3d::Identity(),
         Eigen::Vector3d( 0,0,0 )
     ) );
@@ -356,9 +352,8 @@ void bundleAdjustment (
     {
         EdgeProjectXYZRGBDPoseOnly* edge = new EdgeProjectXYZRGBDPoseOnly(
             Eigen::Vector3d(pts2[i].x, pts2[i].y, pts2[i].z) );
-        // 为啥不用i？
-        edge->setId( index );
-        // TO-DO: 只设置一个vertex，表示单元边
+        edge->setId( index ); // 为啥不用i？应该都可以，延用了3d2d的写法
+        // 只设置一个vertex，表示单元边，只有pose
         edge->setVertex( 0, dynamic_cast<g2o::VertexSE3Expmap*> (pose) );
         edge->setMeasurement( Eigen::Vector3d(
             pts1[i].x, pts1[i].y, pts1[i].z) );
@@ -368,7 +363,7 @@ void bundleAdjustment (
         edges.push_back(edge);
     }
 
-    // 正式开始求解~
+    // 开始求解
     chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
     optimizer.setVerbose( true );
     optimizer.initializeOptimization();

@@ -25,7 +25,7 @@ void find_feature_matches (
     std::vector< DMatch >& matches );
 
 // 这里改成const reference是不是会变快？
-// 简单测试几乎没差别~~都是17ms左右
+// 简单测试几乎没差别，都是17ms左右
 // 但是实际上要测试快慢，最好到秒级别，才能看出差距
 // 实际使用推荐使用const reference
 void pose_estimation_2d2d (
@@ -156,7 +156,8 @@ void find_feature_matches ( const Mat& img_1, const Mat& img_2,
     }
 }
 
-// 归一化图像坐标系的值，仍然是2D的！
+// 像素坐标转相机归一化坐标
+// 可以认为是去除了K的影响
 Point2d pixel2cam ( const Point2d& p, const Mat& K )
 {
     return Point2d
@@ -197,7 +198,7 @@ void pose_estimation_2d2d (
     }
 
     //-- 计算基础矩阵
-    // 直接调用opencv3的calib3d函数，输入只需要匹配的特征点，本质是解线性方程组
+    // 直接调用opencv3 calib3d中的函数，输入只需要匹配的特征点，本质是解线性方程组
     Mat fundamental_matrix;
     // method变量可以选择CV_FM_8POINT，表示8点法
     // 8点法指的是大于等于8对点的输入，7点法只有7对点
