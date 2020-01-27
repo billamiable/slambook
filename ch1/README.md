@@ -20,7 +20,9 @@ Ax=b求解参考资料：https://zhuanlan.zhihu.com/p/44114447
 
 结合Ax=0和Ax=b的求解，发现以上四种情形中，第2和3种情况下Ax=b必有解，由于行满秩，必能张成n维向量空间，因此b一定属于A的列空间；而第1和4种情况下Ax=b则不一定有解。综上，结论如下：
 
-![](image/Ax=b.png)
+
+![](https://github.com/billamiable/slambook/blob/master/ch1/image/Ax=b.png?raw=true)
+
 
 其中，对于r=n<m的情况，如果限定b≠0，则一定无精确解。
 
