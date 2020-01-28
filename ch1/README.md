@@ -2,7 +2,7 @@
 
 1、有线性方程 Ax = b，当我们知道A，b，想要求解x时，如何求解？这对 A 和 b 需要哪些条件？提示：从 A 的维度和秩角度来分析。
 
-Ax=b求解参考资料：https://zhuanlan.zhihu.com/p/44114447
+参考资料：https://zhuanlan.zhihu.com/p/44114447
 
 假设A是m*n的矩阵，矩阵的秩为r，即rank(A)=r。线性方程组的解分为两部分，Ax=0和Ax=b，两者一道构成通解。一般的求解流程为：先求解Ax=b的特解，再求解Ax=0，最后组合得到通解。
 
@@ -62,7 +62,9 @@ Ubuntu 16.04
 
 7、Linux的目录结构是什么样的？你知道哪些基本命令，比如ls, cat等等？
 
-Linux目录结构：https://www.runoob.com/linux/linux-system-contents.html
+### Linux目录结构
+
+参考资料：https://www.runoob.com/linux/linux-system-contents.html
 
 重点关注以下几个：
 
@@ -75,7 +77,9 @@ Linux目录结构：https://www.runoob.com/linux/linux-system-contents.html
 - /usr/src：内核源代码默认的放置目录。
 - /var：这是一个非常重要的目录，系统上跑了很多程序，那么每个程序都会有相应的日志产生，而这些日志就被记录到这个目录下，具体在/var/log 目录下，另外mail的预设放置也是在这里。
 
-Linux命令：https://blog.csdn.net/ljianhui/article/details/11100625
+### Linux命令
+
+参考资料：https://blog.csdn.net/ljianhui/article/details/11100625
 
 - cd：切换目录。
 - ls：查看文件与目录，其中ls -a列出全部的文件，连同隐藏文件。

@@ -115,6 +115,7 @@ imshow("1.png的SURF特征点",outImg);
 waitKey(0);
 ```
 
+以上代码具体可见本github中ch7的homework目录。
 
 terminal output
 

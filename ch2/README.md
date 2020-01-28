@@ -6,7 +6,9 @@
 
 3、g++命令有哪些参数？怎么填写参数可以更改生成的程序文件名？
 
-g++编译原理：https://blog.csdn.net/elfprincexu/article/details/45043971
+### g++编译原理
+
+参考资料：https://blog.csdn.net/elfprincexu/article/details/45043971
 
 gcc/g++在执行编译工作的时候，总共需要4步：
 
@@ -15,7 +17,12 @@ gcc/g++在执行编译工作的时候，总共需要4步：
 - 汇编：把.s文件翻译成二进制机器指令文件.o
 - 链接：gcc按照路径查找函数库，完成链接后生成可执行文件
 
-g++命令参数：https://www.jianshu.com/p/40ac8313eb7f，https://www.cnblogs.com/lidan/archive/2011/05/25/2239517.html
+### g++命令参数
+
+参考资料：
+
+- https://www.jianshu.com/p/40ac8313eb7f
+- https://www.cnblogs.com/lidan/archive/2011/05/25/2239517.html
 
 重点关注以下几个参数：
 
@@ -32,7 +39,7 @@ g++命令参数：https://www.jianshu.com/p/40ac8313eb7f，https://www.cnblogs.c
 
 6、如果忘了把库链接到可执行程序上，编译会报错吗？什么样的错？
 
-```terminal
+```bash
 Undefined symbols for architecture x86_64:
   "printHello()", referenced from:
       _main in useHello.cpp.o
@@ -110,36 +117,34 @@ endif(HELLO_INCLUDE_DIRS AND HELLO_LIBRARIES)
 
 最后修改新的project里的CMakeLists.txt，并再次编译运行程序即可：
 
-```c
+```cpp
 # 声明要求的 cmake 最低版本
 cmake_minimum_required( VERSION 2.8 )
 
 # 声明一个 cmake 工程
-project( useHelloSLAM )
+project( homework )
 
 # 设置编译模式
 set( CMAKE_BUILD_TYPE "Debug" )
 
 # 添加一个可执行程序
 # 语法：add_executable( 程序名 源代码文件 ）
-add_executable( usehelloSLAM use_helloSLAM.cpp )
+add_executable( homework homework.cpp )
 
 # 寻找
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 find_package(HELLO)
 include_directories(${HELLO_INCLUDE_DIRS})
-target_link_libraries (usehelloSLAM ${HELLO_LIBRARIES})
+target_link_libraries (homework ${HELLO_LIBRARIES})
 ```
 
-以上代码具体可见本github中ch2的new_project目录。
+以上代码具体可见本github中ch2的homework目录。
 
 9、寻找其他cmake教学材料，深入了解cmake，例如https://github.com/TheErk/CMake-tutorial。
 
 10、寻找Kdevelop的官方网站，看看它还有哪些特性。你都用上了吗？
 
 11、如果你在上一讲学习了vim，请试试Kdevelop的vim编辑功能。                       
-
-
 
 
 
