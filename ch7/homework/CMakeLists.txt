@@ -1,0 +1,18 @@
+cmake_minimum_required( VERSION 2.8 )
+project( homework )
+
+set( CMAKE_BUILD_TYPE "Release" )
+set( CMAKE_CXX_FLAGS "-O3" )
+
+# 添加Eigen头文件
+# include_directories( "/usr/include/eigen3" )
+
+# in osx and brew install
+include_directories( /usr/local/Cellar/eigen/3.3.7/include/eigen3 )
+
+find_package( OpenCV 3.1 REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+
+
+add_executable( homework homework.cpp )
+target_link_libraries( homework ${OpenCV_LIBS} )
