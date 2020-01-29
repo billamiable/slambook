@@ -2,10 +2,10 @@
 
 1、验证旋转矩阵是正交矩阵。
 
-证明矩阵为正交矩阵，即证明A^T*A=I。
+参考资料：[答案来源](https://www.xlmaverick.me/post/%E4%B8%89%E7%BB%B4%E7%A9%BA%E9%97%B4%E7%9A%84%E5%88%9A%E4%BD%93%E8%BF%90%E5%8A%A8/)
 
-具体证明过程见下图，答案来源为：https://www.xlmaverick.me/post/%E4%B8%89%E7%BB%B4%E7%A9%BA%E9%97%B4%E7%9A%84%E5%88%9A%E4%BD%93%E8%BF%90%E5%8A%A8/
 
+证明矩阵为正交矩阵，即证明A^T*A=I。证明思路为根据坐标系的基向量写出旋转矩阵的定义，之后用矩阵乘法得证，具体证明过程见下图。
 ![](image/R*R^T=I.png)
 
 2、寻找罗德里格斯公式的推导过程并理解它。
@@ -14,12 +14,19 @@
 
 ![](image/Rodrigues.png)
 
-以上方法是基于Taylor展开的方式，也有方法是基于坐标轴的旋转表示，请见https://zhuanlan.zhihu.com/p/31775921。
+以上方法是基于Taylor展开的方式，也有方法是基于坐标轴的旋转表示，请见[博客](https://zhuanlan.zhihu.com/p/31775921)。
 
 
 3、验证四元数旋转某个点后，结果是一个虚四元数(实部为零)，所以仍然对应到一个三维空间点（式3.34）。
 
-证明逻辑为根据公式3.34进行四元数的相乘、求逆等运算，最后计算得到的四元数的实数部分的系数，可以得到最后系数为0，因此仍然是虚四元数，具体推导过程请见：https://blog.csdn.net/gxsheen/article/details/79156817
+参考资料：[答案来源](https://blog.csdn.net/gxsheen/article/details/79156817)
+
+证明逻辑为根据公式(3.34)进行四元数的相乘、求逆等运算，最后计算得到的四元数的实数部分的系数，可以得到最后系数为0，因此仍然是虚四元数，具体推导过程请见下图。
+
+![](image/quaternion1.png)
+
+![](image/quaternion2.png)
+
 
 4、画表总结旋转矩阵、轴角、欧拉角、四元数的转换关系。
 
@@ -27,6 +34,11 @@
 
 
 5、假设我有一个大的Eigen矩阵，我想把它的左上角 3 × 3 的块取出来，然后赋值为I_3×3。请编程实现此事。
+
+参考资料：
+
+- https://blog.csdn.net/jiahao62/article/details/80655542
+- https://www.cnblogs.com/newneul/p/8306430.html
 
 ```cpp
 #include <iostream>
@@ -62,6 +74,8 @@ after assign
 ```
 
 6、一般线程方程 Ax = b 有哪几种做法？你能在Eign中实现吗？
+
+参考资料：https://www.cnblogs.com/newneul/p/8306442.html
 
 ```cpp
 // 求解Ax=b
@@ -126,6 +140,11 @@ time use in Cholesky decomposition is 0.047ms
 
 
 7、设有小萝卜一号和小萝卜二号位于世界坐标系中。小萝卜一号的位姿为：q1 = [0.35, 0.2, 0.3, 0.1]，t1 =  	[0.3, 0.1, 0.1]^T (q 的第一项为实部。请你把 q 归一化后再进行计算)。这里的 q 和 t 表达的是 Tcw，也就是世界到相机的变换关系。小萝卜二 号的位姿为：q2 = [−0.5,0.4,−0.1,0.2]，t2 = [−0.1,0.5,0.3]^T。现在，小萝卜一号看到某个点在自身的坐标系下，坐标为 p = [0.5, 0, 0.2]^T ，求该向量在小萝卜二号坐标系下的坐标。请编程实现此事。
+
+参考资料：
+
+- https://www.xlmaverick.me/post/%E4%B8%89%E7%BB%B4%E7%A9%BA%E9%97%B4%E7%9A%84%E5%88%9A%E4%BD%93%E8%BF%90%E5%8A%A8/
+- https://blog.csdn.net/jiahao62/article/details/80655542
 
 ```cpp
 // 坐标变换
@@ -201,5 +220,6 @@ coordinate in camera 2 is
 - 四元数旋转证明：https://blog.csdn.net/gxsheen/article/details/79156817
 - Eigen提取block：https://blog.csdn.net/jiahao62/article/details/80655542
 - Eigen提取block：https://www.cnblogs.com/newneul/p/8306430.html
+- Ax=b求解：https://www.cnblogs.com/newneul/p/8306442.html
 - 坐标变换：https://www.xlmaverick.me/post/%E4%B8%89%E7%BB%B4%E7%A9%BA%E9%97%B4%E7%9A%84%E5%88%9A%E4%BD%93%E8%BF%90%E5%8A%A8/
 - 坐标变换：https://blog.csdn.net/jiahao62/article/details/80655542
