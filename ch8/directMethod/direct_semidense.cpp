@@ -192,6 +192,7 @@ int main ( int argc, char** argv )
         if ( color.data==nullptr || depth.data==nullptr )
             continue; 
         cv::cvtColor ( color, gray, cv::COLOR_BGR2GRAY );
+        // 以下提取特征点的部分与sparse的不一样
         if ( index ==0 )
         {
             // select the pixels with high gradiants 
@@ -202,6 +203,7 @@ int main ( int argc, char** argv )
                         gray.ptr<uchar>(y)[x+1] - gray.ptr<uchar>(y)[x-1], 
                         gray.ptr<uchar>(y+1)[x] - gray.ptr<uchar>(y-1)[x]
                     );
+                    // 简单地根据梯度的norm判断是否为特征点
                     if ( delta.norm() < 50 )
                         continue;
                     ushort d = depth.ptr<ushort> (y)[x];
@@ -212,6 +214,7 @@ int main ( int argc, char** argv )
                     measurements.push_back ( Measurement ( p3d, grayscale ) );
                 }
             prev_color = color.clone();
+            // 数量应该会有很大的提升
             cout<<"add total "<<measurements.size()<<" measurements."<<endl;
             continue;
         }

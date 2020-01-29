@@ -33,6 +33,8 @@ struct Measurement
     float grayscale;
 };
 
+// 引入inline函数来解决一些频繁调用的小函数大量消耗栈空间（栈内存）的问题
+// 这里应该说成lift2Dto3D更严谨
 inline Eigen::Vector3d project2Dto3D ( int x, int y, int d, float fx, float fy, float cx, float cy, float scale )
 {
     float zz = float ( d ) /scale;
@@ -56,42 +58,42 @@ bool poseEstimationDirect ( const vector<Measurement>& measurements, cv::Mat* gr
 
 // project a 3d point into an image plane, the error is photometric error
 // an unary edge with one vertex SE3Expmap (the pose of camera)
-// 与前面很像，这里也是定义了新的g2o edge!
 class EdgeSE3ProjectDirect: public BaseUnaryEdge< 1, double, VertexSE3Expmap>
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+    // 两个构造函数，用于实现不同情况的实例化
     EdgeSE3ProjectDirect() {}
 
     EdgeSE3ProjectDirect ( Eigen::Vector3d point, float fx, float fy, float cx, float cy, cv::Mat* image )
         : x_world_ ( point ), fx_ ( fx ), fy_ ( fy ), cx_ ( cx ), cy_ ( cy ), image_ ( image )
     {}
 
-    // 这个在哪里都有！哈哈！
+    // 计算光度误差
     virtual void computeError()
     {
         const VertexSE3Expmap* v  =static_cast<const VertexSE3Expmap*> ( _vertices[0] );
-        Eigen::Vector3d x_local = v->estimate().map ( x_world_ );
+        Eigen::Vector3d x_local = v->estimate().map ( x_world_ ); // Rp+t
         float x = x_local[0]*fx_/x_local[2] + cx_;
         float y = x_local[1]*fy_/x_local[2] + cy_;
         // check x,y is in the image
         if ( x-4<0 || ( x+4 ) >image_->cols || ( y-4 ) <0 || ( y+4 ) >image_->rows )
         {
             _error ( 0,0 ) = 0.0;
-            this->setLevel ( 1 );
+            this->setLevel ( 1 ); // 与下面的level判断对应
         }
         else
         {
-            _error ( 0,0 ) = getPixelValue ( x,y ) - _measurement;
+            _error ( 0,0 ) = getPixelValue ( x,y ) - _measurement; // 根据坐标浮点数做插值
         }
     }
 
     // plus in manifold
-    // TO-DO: 这里是关键！等这周过后，找时间把这个硬骨头啃下来！
+    // 定义扰动模型，计算雅克比矩阵
     virtual void linearizeOplus( )
     {
-        if ( level() == 1 )
+        if ( level() == 1 ) // returns the level of the edge
         {
             _jacobianOplusXi = Eigen::Matrix<double, 1, 6>::Zero();
             return;
@@ -109,7 +111,8 @@ public:
 
         // jacobian from se3 to u,v
         // NOTE that in g2o the Lie algebra is (\omega, \epsilon), where \omega is so(3) and \epsilon the translation
-        Eigen::Matrix<double, 2, 6> jacobian_uv_ksai;
+        // 注意旋转和平移的顺序问题
+        Eigen::Matrix<double, 2, 6> jacobian_uv_ksai; // 对应书中的公式(8.15)
 
         jacobian_uv_ksai ( 0,0 ) = - x*y*invz_2 *fx_;
         jacobian_uv_ksai ( 0,1 ) = ( 1+ ( x*x*invz_2 ) ) *fx_;
@@ -125,12 +128,12 @@ public:
         jacobian_uv_ksai ( 1,4 ) = invz *fy_;
         jacobian_uv_ksai ( 1,5 ) = -y*invz_2 *fy_;
 
-        Eigen::Matrix<double, 1, 2> jacobian_pixel_uv;
+        Eigen::Matrix<double, 1, 2> jacobian_pixel_uv; // 表示I2对于u的偏导
 
         jacobian_pixel_uv ( 0,0 ) = ( getPixelValue ( u+1,v )-getPixelValue ( u-1,v ) ) /2;
         jacobian_pixel_uv ( 0,1 ) = ( getPixelValue ( u,v+1 )-getPixelValue ( u,v-1 ) ) /2;
 
-        _jacobianOplusXi = jacobian_pixel_uv*jacobian_uv_ksai;
+        _jacobianOplusXi = jacobian_pixel_uv*jacobian_uv_ksai; // 最后运用链式法则相乘
     }
 
     // dummy read and write functions because we don't care...
@@ -139,8 +142,11 @@ public:
 
 protected:
     // get a gray scale value from reference image (bilinear interpolated)
+    // 双线性插值方法
     inline float getPixelValue ( float x, float y )
-    {
+    {   
+        // step是cv::Mat的函数，表示每一维元素的大小，以字节为单位
+        // uchar为unsigned char，是一种8-bit无符号整形数据，范围为[0, 255]
         uchar* data = & image_->data[ int ( y ) * image_->step + int ( x ) ];
         float xx = x - floor ( x );
         float yy = y - floor ( y );
@@ -157,7 +163,6 @@ public:
     cv::Mat* image_=nullptr;    // reference image
 };
 
-// 这里的思想其实很简单！
 int main ( int argc, char** argv )
 {
     if ( argc != 2 )
@@ -165,7 +170,7 @@ int main ( int argc, char** argv )
         cout<<"usage: useLK path_to_dataset"<<endl;
         return 1;
     }
-    srand ( ( unsigned int ) time ( 0 ) );
+    srand ( ( unsigned int ) time ( 0 ) ); // 随机数
     string path_to_dataset = argv[1];
     string associate_file = path_to_dataset + "/associate.txt";
 
@@ -186,7 +191,7 @@ int main ( int argc, char** argv )
     Eigen::Isometry3d Tcw = Eigen::Isometry3d::Identity();
 
     cv::Mat prev_color;
-    // 我们以第一个图像为参考，对后续图像和参考图像做直接法
+    // 我们以第一个图像为参考，对后续图像和参考图像使用直接法
     for ( int index=0; index<10; index++ )
     {
         cout<<"*********** loop "<<index<<" ************"<<endl;
@@ -195,7 +200,7 @@ int main ( int argc, char** argv )
         depth = cv::imread ( path_to_dataset+"/"+depth_file, -1 );
         if ( color.data==nullptr || depth.data==nullptr )
             continue; 
-        cv::cvtColor ( color, gray, cv::COLOR_BGR2GRAY );
+        cv::cvtColor ( color, gray, cv::COLOR_BGR2GRAY ); // 不使用RGB，使用灰度图
         if ( index ==0 )
         {
             // 对第一帧提取FAST特征点
@@ -207,14 +212,14 @@ int main ( int argc, char** argv )
                 // 去掉邻近边缘处的点
                 if ( kp.pt.x < 20 || kp.pt.y < 20 || ( kp.pt.x+20 ) >color.cols || ( kp.pt.y+20 ) >color.rows )
                     continue;
-                ushort d = depth.ptr<ushort> ( cvRound ( kp.pt.y ) ) [ cvRound ( kp.pt.x ) ];
+                ushort d = depth.ptr<ushort> ( cvRound ( kp.pt.y ) ) [ cvRound ( kp.pt.x ) ]; // 获得depth值
                 if ( d==0 )
                     continue;
                 Eigen::Vector3d p3d = project2Dto3D ( kp.pt.x, kp.pt.y, d, fx, fy, cx, cy, depth_scale );
-                float grayscale = float ( gray.ptr<uchar> ( cvRound ( kp.pt.y ) ) [ cvRound ( kp.pt.x ) ] );
+                float grayscale = float ( gray.ptr<uchar> ( cvRound ( kp.pt.y ) ) [ cvRound ( kp.pt.x ) ] ); // 浮点数转整数
                 measurements.push_back ( Measurement ( p3d, grayscale ) );
             }
-            prev_color = color.clone();
+            prev_color = color.clone(); // 使用深拷贝更新参考帧图片
             continue;
         }
         // 使用直接法计算相机运动
@@ -223,23 +228,26 @@ int main ( int argc, char** argv )
         chrono::steady_clock::time_point t2 = chrono::steady_clock::now();
         chrono::duration<double> time_used = chrono::duration_cast<chrono::duration<double>> ( t2-t1 );
         cout<<"direct method costs time: "<<time_used.count() <<" seconds."<<endl;
-        cout<<"Tcw="<<Tcw.matrix() <<endl;
+        cout<<"Tcw="<<Tcw.matrix() <<endl; // 输出R,t
 
         // plot the feature points
-        cv::Mat img_show ( color.rows*2, color.cols, CV_8UC3 );
+        cv::Mat img_show ( color.rows*2, color.cols, CV_8UC3 ); // 相当于matlab里的subplot
+        // copyTo是深拷贝，但是否申请新的内存空间，取决于dst矩阵头中的大小信息是否与src一至
+        // 若一致则只深拷贝并不申请新的空间，否则先申请空间后再进行拷贝
         prev_color.copyTo ( img_show ( cv::Rect ( 0,0,color.cols, color.rows ) ) );
         color.copyTo ( img_show ( cv::Rect ( 0,color.rows,color.cols, color.rows ) ) );
         for ( Measurement m:measurements )
         {
             if ( rand() > RAND_MAX/5 )
                 continue;
+            // 找到各自的对应点
             Eigen::Vector3d p = m.pos_world;
             Eigen::Vector2d pixel_prev = project3Dto2D ( p ( 0,0 ), p ( 1,0 ), p ( 2,0 ), fx, fy, cx, cy );
             Eigen::Vector3d p2 = Tcw*m.pos_world;
             Eigen::Vector2d pixel_now = project3Dto2D ( p2 ( 0,0 ), p2 ( 1,0 ), p2 ( 2,0 ), fx, fy, cx, cy );
             if ( pixel_now(0,0)<0 || pixel_now(0,0)>=color.cols || pixel_now(1,0)<0 || pixel_now(1,0)>=color.rows )
                 continue;
-
+            // 特征点画圈的颜色随机给定
             float b = 255*float ( rand() ) /RAND_MAX;
             float g = 255*float ( rand() ) /RAND_MAX;
             float r = 255*float ( rand() ) /RAND_MAX;
@@ -254,11 +262,11 @@ int main ( int argc, char** argv )
     return 0;
 }
 
-// TO-DO: 这里给的是g2o的实现，之后自己可以再做ceres的实现！
+// 这里给的是g2o的实现，之后可以再做ceres的实现
 bool poseEstimationDirect ( const vector< Measurement >& measurements, cv::Mat* gray, Eigen::Matrix3f& K, Eigen::Isometry3d& Tcw )
 {
     // 初始化g2o
-    typedef g2o::BlockSolver<g2o::BlockSolverTraits<6,1>> DirectBlock;  // 求解的向量是6＊1的
+    typedef g2o::BlockSolver<g2o::BlockSolverTraits<6,1>> DirectBlock;  // 求解的向量是6＊1的，即R和t
     DirectBlock::LinearSolverType* linearSolver = new g2o::LinearSolverDense< DirectBlock::PoseMatrixType > ();
     DirectBlock* solver_ptr = new DirectBlock ( linearSolver );
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr ); // G-N
@@ -267,6 +275,7 @@ bool poseEstimationDirect ( const vector< Measurement >& measurements, cv::Mat* 
     optimizer.setAlgorithm ( solver );
     optimizer.setVerbose( true );
 
+    // 添加位姿节点
     g2o::VertexSE3Expmap* pose = new g2o::VertexSE3Expmap();
     pose->setEstimate ( g2o::SE3Quat ( Tcw.rotation(), Tcw.translation() ) );
     pose->setId ( 0 );
@@ -280,8 +289,8 @@ bool poseEstimationDirect ( const vector< Measurement >& measurements, cv::Mat* 
             m.pos_world,
             K ( 0,0 ), K ( 1,1 ), K ( 0,2 ), K ( 1,2 ), gray
         );
-        edge->setVertex ( 0, pose );
-        edge->setMeasurement ( m.grayscale );
+        edge->setVertex ( 0, pose ); // 一元边
+        edge->setMeasurement ( m.grayscale ); // 灰度图作为观测值
         edge->setInformation ( Eigen::Matrix<double,1,1>::Identity() );
         edge->setId ( id++ );
         optimizer.addEdge ( edge );
@@ -289,6 +298,6 @@ bool poseEstimationDirect ( const vector< Measurement >& measurements, cv::Mat* 
     cout<<"edges in graph: "<<optimizer.edges().size() <<endl;
     optimizer.initializeOptimization();
     optimizer.optimize ( 30 );
-    Tcw = pose->estimate();
+    Tcw = pose->estimate(); // 得到位姿结果
 }
 
