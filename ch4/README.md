@@ -1,6 +1,6 @@
 # 习题解答
 
-1、验证 SO(3)、SE(3) 和 Sim(3) 关于乘法成群。
+**1、验证 SO(3)、SE(3) 和 Sim(3) 关于乘法成群。**
 
 证明过程来源：https://blog.csdn.net/luohuiwu/article/details/80719357
 
@@ -8,7 +8,7 @@
 
 对于SO(3)：
 
-![](/image/SO3.png)
+![](image/SO3.png)
 
 对于SE(3)：其中验证组合律时应为(T1 * T2 ) * T3 = T1 * ( T2 * T3 )。
 
@@ -16,7 +16,8 @@
 
 对于Sim(3)：受限于篇幅略去。
 
-2、验证 (R^3, R, ×) 构成李代数。
+
+**2、验证 (R^3, R, ×) 构成李代数。**
 
 证明来源：https://blog.csdn.net/luohuiwu/article/details/80719357
 
@@ -27,7 +28,7 @@
 其中，由于叉乘的结果是一个行列式，因此严谨来说应该将叉乘结果的形式从[...]改为|...|。
 
 
-3、验证 so(3) 和 se(3) 满足李代数要求的性质。
+**3、验证 so(3) 和 se(3) 满足李代数要求的性质。**
 
 证明来源：https://blog.csdn.net/luohuiwu/article/details/80719090
 
@@ -38,7 +39,7 @@
 其中，最开始定义反对称矩阵时，应该为**Φ**=φ^，而不是下三角符号。
 
 
-4、验证性质（4.20）和（4.21）。
+**4、验证性质（4.20）和（4.21）。**
 
 证明来源：https://blog.csdn.net/luohuiwu/article/details/80719357
 
@@ -47,7 +48,7 @@
 ![](image/4.20_4.21.png)
 
 
-5、证明：R p∧ R^T = (Rp)∧。
+**5、证明：R p∧ R^T = (Rp)∧。**
 
 方法一：借助外界变量间接证明
 
@@ -67,9 +68,12 @@
 ![](image/cross_product1.png)
 
 
-6、证明：R exp(p∧) R^T = exp((Rp)∧)。该式称为 SO(3) 上的伴随性质。同样的，在 SE(3) 上亦有伴随性质：
+**6、证明：R exp(p∧) R^T = exp((Rp)∧)。该式称为 SO(3) 上的伴随性质。同样的，在 SE(3) 上亦有伴随性质：**
+
 ![](image/4.48.png)
-其中：
+
+**其中：**
+
 ![](image/4.49.png)
 
 证明来源：https://blog.mengoreo.cn/post/vslam_ch4/
@@ -80,7 +84,7 @@
 
 
 
-7、仿照左扰动的推导，推导 SO(3) 和 SE(3) 在右扰动下的导数。
+**7、仿照左扰动的推导，推导 SO(3) 和 SE(3) 在右扰动下的导数。**
 
 证明来源：https://blog.mengoreo.cn/post/vslam_ch4/
 
@@ -91,9 +95,12 @@
 其中，最后取极限是分别对delta_p和delta_fai取极限，因此得到的是两项。里面还会用到一次叉乘两项顺序互换，需要加一个负号。
 
 
-8、搜索cmake的find_package指令是如何运作的。它有哪些可选的参数？为了让cmake找到某个库，需要哪些先决条件？
+**8、搜索cmake的find_package指令是如何运作的。它有哪些可选的参数？为了让cmake找到某个库，需要哪些先决条件？**
 
-参考链接：https://blog.csdn.net/u012348774/article/details/83652191#comments，https://cmake.org/cmake/help/v3.14/command/find_package.html
+参考资料：
+
+- https://blog.csdn.net/u012348774/article/details/83652191#comments
+- https://cmake.org/cmake/help/v3.14/command/find_package.html
 
 有两种find_package的方式：
 
@@ -111,6 +118,7 @@
 - [REQUIRED]：The REQUIRED option stops processing with an error message if the package cannot be found. 表示必须要找到package。
 - [[COMPONENTS] [components...]]：A package-specific list of required components may be listed after the COMPONENTS option (or after the REQUIRED option if present). 表示必须要有的组件。
 
+--
 
 # 参考文献
 

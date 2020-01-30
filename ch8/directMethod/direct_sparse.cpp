@@ -238,7 +238,7 @@ int main ( int argc, char** argv )
         color.copyTo ( img_show ( cv::Rect ( 0,color.rows,color.cols, color.rows ) ) );
         for ( Measurement m:measurements )
         {
-            if ( rand() > RAND_MAX/5 )
+            if ( rand() > RAND_MAX/5 ) // 随机选20%的关键点
                 continue;
             // 找到各自的对应点
             Eigen::Vector3d p = m.pos_world;

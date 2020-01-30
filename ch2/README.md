@@ -1,12 +1,16 @@
 # 习题解答
 
-1、阅读文献[1]和[14]，你能看懂文献的内容吗？
+**1、阅读文献[1]和[14]，你能看懂文献的内容吗？**
 
-2、阅读SLAM的综述文献,例如[9,15,16,17,18]等。这些文献关于SLAM的看法与本书有何异同？
 
-3、g++命令有哪些参数？怎么填写参数可以更改生成的程序文件名？
 
-### g++编译原理
+**2、阅读SLAM的综述文献,例如[9,15,16,17,18]等。这些文献关于SLAM的看法与本书有何异同？**
+
+
+
+**3、g++命令有哪些参数？怎么填写参数可以更改生成的程序文件名？**
+
+##### g++编译原理
 
 参考资料：https://blog.csdn.net/elfprincexu/article/details/45043971
 
@@ -17,7 +21,7 @@ gcc/g++在执行编译工作的时候，总共需要4步：
 - 汇编：把.s文件翻译成二进制机器指令文件.o
 - 链接：gcc按照路径查找函数库，完成链接后生成可执行文件
 
-### g++命令参数
+##### g++命令参数
 
 参考资料：
 
@@ -33,11 +37,16 @@ gcc/g++在执行编译工作的时候，总共需要4步：
 - -llibrary：制定编译的时候使用的库，例如gcc -lcurses hello.c表示使用ncurses库。
 -  -Ldir：制定编译的时候，搜索库的路径。
 
-4、使用build文件夹来编译你的cmake工程，然后在KDevelop中试试
 
-5、刻意在代码中添加一些语法错误，看看编译会生成什么样的信息。你能看懂g++的错误吗？
+**4、使用build文件夹来编译你的cmake工程，然后在KDevelop中试试。**
 
-6、如果忘了把库链接到可执行程序上，编译会报错吗？什么样的错？
+
+
+**5、刻意在代码中添加一些语法错误，看看编译会生成什么样的信息。你能看懂g++的错误吗？**
+
+
+
+**6、如果忘了把库链接到可执行程序上，编译会报错吗？什么样的错？**
 
 ```bash
 Undefined symbols for architecture x86_64:
@@ -51,14 +60,14 @@ make: *** [all] Error 2
 ```
 表示链接失败，找不到对应的symbol
 
-7、阅读《cmake实践》,了解cmake的其他语法。
+**7、阅读《cmake实践》,了解cmake的其他语法。**
 
 cmake设置变量的方式有两种：
 
 - set：set( VARIABLE_NAME "INPUT_STRING"/Path )
 - list：list( APPEND VARIABLE_NAME "INPUT_STRING"/Path )
 
-8、完善hello SLAM的小程序，把它做成一个小程序库，安装到本地硬盘中。然后，新建一个工程，使用             找这个库并调用它。
+**8、完善hello SLAM的小程序，把它做成一个小程序库，安装到本地硬盘中。然后，新建一个工程，使用             找这个库并调用它。**
 
 安装到本地硬盘方法：
 修改CMakeLists.txt，并重新cmake & make & make install
@@ -140,13 +149,14 @@ target_link_libraries (homework ${HELLO_LIBRARIES})
 
 以上代码具体可见本github中ch2的homework目录。
 
-9、寻找其他cmake教学材料，深入了解cmake，例如https://github.com/TheErk/CMake-tutorial。
+**9、寻找其他cmake教学材料，深入了解cmake，例如https://github.com/TheErk/CMake-tutorial。**
 
-10、寻找Kdevelop的官方网站，看看它还有哪些特性。你都用上了吗？
+**10、寻找Kdevelop的官方网站，看看它还有哪些特性。你都用上了吗？**
 
-11、如果你在上一讲学习了vim，请试试Kdevelop的vim编辑功能。                       
+**11、如果你在上一讲学习了vim，请试试Kdevelop的vim编辑功能。**                     
 
 
+--
 
 # 参考文献
 
