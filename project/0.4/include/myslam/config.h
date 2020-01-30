@@ -27,14 +27,16 @@ namespace myslam
 class Config
 {
 private:
-    static std::shared_ptr<Config> config_; 
+    // 实现单例设计模式的三个关键点
+    static std::shared_ptr<Config> config_; // 2. 使用类的私有静态指针变量指向类的唯一实例
     cv::FileStorage file_;
-    
+    // 1. 私有化它的构造函数，以防止外界创建单例类的对象
     Config () {} // private constructor makes a singleton
 public:
     ~Config();  // close the file when deconstructing 
     
     // set a new config file 
+    // 3. 使用一个公有的静态方法获取该实例
     static void setParameterFile( const std::string& filename ); 
     
     // access the parameter values
