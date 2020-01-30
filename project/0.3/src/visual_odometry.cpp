@@ -162,6 +162,7 @@ void VisualOdometry::setRef3DPoints()
     }
 }
 
+// 这里先用基于RANSAC的pnp求解，再用非线性优化
 void VisualOdometry::poseEstimationPnP()
 {
     // construct the 3d 2d observations
@@ -188,6 +189,7 @@ void VisualOdometry::poseEstimationPnP()
         Vector3d( tvec.at<double>(0,0), tvec.at<double>(1,0), tvec.at<double>(2,0))
     );
     
+    // 以下为相比0.2版本增加的部分
     // using bundle adjustment to optimize the pose 
     typedef g2o::BlockSolver<g2o::BlockSolverTraits<6,2>> Block;
     Block::LinearSolverType* linearSolver = new g2o::LinearSolverDense<Block::PoseMatrixType>();
@@ -198,6 +200,7 @@ void VisualOdometry::poseEstimationPnP()
     
     g2o::VertexSE3Expmap* pose = new g2o::VertexSE3Expmap();
     pose->setId ( 0 );
+    // 将PNP求解结果作为初值
     pose->setEstimate ( g2o::SE3Quat (
         T_c_r_estimated_.rotation_matrix(), 
         T_c_r_estimated_.translation()
@@ -222,6 +225,7 @@ void VisualOdometry::poseEstimationPnP()
     optimizer.initializeOptimization();
     optimizer.optimize(10);
     
+    // 最后优化得到的位姿
     T_c_r_estimated_ = SE3 (
         pose->estimate().rotation(),
         pose->estimate().translation()

@@ -2,7 +2,7 @@
 
 **1、验证 SO(3)、SE(3) 和 Sim(3) 关于乘法成群。**
 
-证明过程来源：https://blog.csdn.net/luohuiwu/article/details/80719357
+参考资料：[答案来源](https://blog.csdn.net/luohuiwu/article/details/80719357)
 
 证明思路：首先写出SO(3), SE(3), Sim(3)的定义，接着按照群的四个要求一一验证，其中运用定义和矩阵乘法、求逆等的知识即可证明。
 
@@ -19,7 +19,7 @@
 
 **2、验证 (R^3, R, ×) 构成李代数。**
 
-证明来源：https://blog.csdn.net/luohuiwu/article/details/80719357
+参考资料：[答案来源](https://blog.csdn.net/luohuiwu/article/details/80719357)
 
 证明思路：根据李代数的四点定义，结合叉乘的性质即可一一证明。
 
@@ -30,7 +30,7 @@
 
 **3、验证 so(3) 和 se(3) 满足李代数要求的性质。**
 
-证明来源：https://blog.csdn.net/luohuiwu/article/details/80719090
+参考资料：[答案来源](https://blog.csdn.net/luohuiwu/article/details/80719090)
 
 证明思路：根据李代数的四点定义，结合叉乘的性质和矩阵乘法的性质即可一一证明。
 
@@ -41,7 +41,7 @@
 
 **4、验证性质（4.20）和（4.21）。**
 
-证明来源：https://blog.csdn.net/luohuiwu/article/details/80719357
+参考资料：[答案来源](https://blog.csdn.net/luohuiwu/article/details/80719357)
 
 证明思路：利用矩阵乘法展开后化简得证。
 
@@ -52,7 +52,10 @@
 
 方法一：借助外界变量间接证明
 
-证明来源：https://blog.csdn.net/jiahao62/article/details/80655542，https://math.stackexchange.com/questions/2190603/derivation-of-adjoint-for-so3
+参考资料：
+
+- https://blog.csdn.net/jiahao62/article/details/80655542
+- https://math.stackexchange.com/questions/2190603/derivation-of-adjoint-for-so3
 
 证明思路：很巧妙的方法，可以通过右乘任意一个向量v来证明，用到了叉乘与反对称矩阵的变换。
 
@@ -61,7 +64,7 @@
 
 方法二：利用矩阵乘法展开直接证明
 
-证明来源：https://blog.mengoreo.cn/post/vslam_ch4/
+参考资料：https://blog.mengoreo.cn/post/vslam_ch4/
 
 证明思路：将R和p都定义出来，老老实实展开算后化简得证。
 
@@ -76,7 +79,7 @@
 
 ![](image/4.49.png)
 
-证明来源：https://blog.mengoreo.cn/post/vslam_ch4/
+参考资料：[答案来源](https://blog.mengoreo.cn/post/vslam_ch4/)
 
 证明思路：通过罗德里格斯公式进行展开再化简得证，很巧妙！
 
@@ -86,7 +89,7 @@
 
 **7、仿照左扰动的推导，推导 SO(3) 和 SE(3) 在右扰动下的导数。**
 
-证明来源：https://blog.mengoreo.cn/post/vslam_ch4/
+参考资料：[答案来源](https://blog.mengoreo.cn/post/vslam_ch4/)
 
 证明思路：与书中类似，注意相乘几项的左右位置即可
 

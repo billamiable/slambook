@@ -218,12 +218,13 @@ void VisualOdometry::poseEstimationPnP()
         edge->setInformation ( Eigen::Matrix2d::Identity() );
         optimizer.addEdge ( edge );
         // set the inlier map points 
-        match_3dpts_[index]->matched_times_++;
+        match_3dpts_[index]->matched_times_++; // 维护匹配点被匹配的次数
     }
 
     optimizer.initializeOptimization();
     optimizer.optimize ( 10 );
 
+    // 最后优化得到的位姿
     T_c_w_estimated_ = SE3 (
         pose->estimate().rotation(),
         pose->estimate().translation()

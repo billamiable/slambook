@@ -25,7 +25,7 @@
 // for Eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-using Eigen::Vector2d;
+using Eigen::Vector2d; // 这应该也是一种简写方法，后面直接用Vector2d即可
 using Eigen::Vector3d;
 
 // for Sophus

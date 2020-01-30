@@ -22,14 +22,14 @@
 
 #include "myslam/common_include.h"
 
-namespace myslam
+namespace myslam // 每个都用命名空间包裹了起来，防止别的库定义同名的函数
 {
 
 // Pinhole RGBD camera model
 class Camera
 {
 public:
-    typedef std::shared_ptr<Camera> Ptr;
+    typedef std::shared_ptr<Camera> Ptr; // 智能指针，之后传递参数只要用Ptr类型即可
     float   fx_, fy_, cx_, cy_, depth_scale_;  // Camera intrinsics 
 
     Camera();
@@ -38,7 +38,7 @@ public:
     {}
 
     // coordinate transform: world, camera, pixel
-    Vector3d world2camera( const Vector3d& p_w, const SE3& T_c_w );
+    Vector3d world2camera( const Vector3d& p_w, const SE3& T_c_w ); // Sophus::SE3代表位姿
     Vector3d camera2world( const Vector3d& p_c, const SE3& T_c_w );
     Vector2d camera2pixel( const Vector3d& p_c );
     Vector3d pixel2camera( const Vector2d& p_p, double depth=1 ); 

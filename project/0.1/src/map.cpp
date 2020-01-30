@@ -25,19 +25,19 @@ namespace myslam
 void Map::insertKeyFrame ( Frame::Ptr frame )
 {
     cout<<"Key frame size = "<<keyframes_.size()<<endl;
-    if ( keyframes_.find(frame->id_) == keyframes_.end() )
+    if ( keyframes_.find(frame->id_) == keyframes_.end() ) // not found frame_id in database
     {
-        keyframes_.insert( make_pair(frame->id_, frame) );
+        keyframes_.insert( make_pair(frame->id_, frame) ); // make_pair是stl标准库里的函数
     }
     else
     {
-        keyframes_[ frame->id_ ] = frame;
+        keyframes_[ frame->id_ ] = frame; // replace with new frame to corresponding frame_id
     }
 }
 
 void Map::insertMapPoint ( MapPoint::Ptr map_point )
 {
-    if ( map_points_.find(map_point->id_) == map_points_.end() )
+    if ( map_points_.find(map_point->id_) == map_points_.end() ) //  also using id to find
     {
         map_points_.insert( make_pair(map_point->id_, map_point) );
     }

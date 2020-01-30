@@ -30,5 +30,8 @@ set( THIRD_PARTY_LIBS
 )
 ############### source and test ######################
 include_directories( ${PROJECT_SOURCE_DIR}/include )
+# the root CMakeLists.txt is your starting point
+# CMake will mirror your add_subdirectory() and 
+# CMakeLists.txt directory structure in its generated build environment
 add_subdirectory( src )
 add_subdirectory( test )

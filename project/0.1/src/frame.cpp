@@ -40,7 +40,7 @@ Frame::~Frame()
 
 Frame::Ptr Frame::createFrame()
 {
-    static long factory_id = 0;
+    static long factory_id = 0; // 静态变量，表示帧号，在函数被调用的过程中值维持不变
     return Frame::Ptr( new Frame(factory_id++) );
 }
 
@@ -56,6 +56,7 @@ double Frame::findDepth ( const cv::KeyPoint& kp )
     else 
     {
         // check the nearby points 
+        // 用周边值的depth的均值来代替
         int dx[4] = {-1,0,1,0};
         int dy[4] = {0,-1,0,1};
         for ( int i=0; i<4; i++ )
@@ -67,10 +68,10 @@ double Frame::findDepth ( const cv::KeyPoint& kp )
             }
         }
     }
-    return -1.0;
+    return -1.0; // 都失败了返回-1
 }
 
-
+// 得到当前camera的中心，由于经过了T_c_w，所以这里反着来
 Vector3d Frame::getCamCenter() const
 {
     return T_c_w_.inverse().translation();
@@ -79,9 +80,10 @@ Vector3d Frame::getCamCenter() const
 bool Frame::isInFrame ( const Vector3d& pt_world )
 {
     Vector3d p_cam = camera_->world2camera( pt_world, T_c_w_ );
-    if ( p_cam(2,0)<0 ) 
+    if ( p_cam(2,0)<0 ) // 判断深度是否为负
         return false;
     Vector2d pixel = camera_->world2pixel( pt_world, T_c_w_ );
+    // 落在图片边框范围内即返回true
     return pixel(0,0)>0 && pixel(1,0)>0 
         && pixel(0,0)<color_.cols 
         && pixel(1,0)<color_.rows;

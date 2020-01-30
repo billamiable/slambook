@@ -31,12 +31,15 @@ class VisualOdometry
 {
 public:
     typedef shared_ptr<VisualOdometry> Ptr;
+    // 三种状态：初始化、正常、丢失
     enum VOState {
         INITIALIZING=-1,
         OK=0,
         LOST
     };
     
+    // 将中间变量定义在类中，可以省去复杂的参数传递
+    // 这个方法挺好的，类中的各个函数都可以访问这些变量
     VOState     state_;     // current VO status
     Map::Ptr    map_;       // map with all frames and map points
     Frame::Ptr  ref_;       // reference frame 
@@ -68,7 +71,7 @@ public: // functions
     VisualOdometry();
     ~VisualOdometry();
     
-    bool addFrame( Frame::Ptr frame );      // add a new frame 
+    bool addFrame( Frame::Ptr frame );      // add a new frame，包含了位姿估计
     
 protected:  
     // inner operation 

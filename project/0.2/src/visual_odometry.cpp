@@ -32,6 +32,7 @@ namespace myslam
 VisualOdometry::VisualOdometry() :
     state_ ( INITIALIZING ), ref_ ( nullptr ), curr_ ( nullptr ), map_ ( new Map ), num_lost_ ( 0 ), num_inliers_ ( 0 )
 {
+    // 从配置文件中读取参数
     num_of_features_    = Config::get<int> ( "number_of_features" );
     scale_factor_       = Config::get<double> ( "scale_factor" );
     level_pyramid_      = Config::get<int> ( "level_pyramid" );
@@ -67,10 +68,12 @@ bool VisualOdometry::addFrame ( Frame::Ptr frame )
     case OK:
     {
         curr_ = frame;
+        // VO的基本流程
         extractKeyPoints();
         computeDescriptors();
         featureMatching();
         poseEstimationPnP();
+        // 下面是很重要的鲁棒性check
         if ( checkEstimatedPose() == true ) // a good estimation
         {
             curr_->T_c_w_ = T_c_r_estimated_ * ref_->T_c_w_;  // T_c_w = T_c_r*T_r_w 
@@ -82,6 +85,7 @@ bool VisualOdometry::addFrame ( Frame::Ptr frame )
                 addKeyFrame();
             }
         }
+        // 实际情况中，需要考虑更多的失效情况，才能让系统更鲁棒
         else // bad estimation due to various reasons
         {
             num_lost_++;
@@ -120,6 +124,7 @@ void VisualOdometry::featureMatching()
     cv::BFMatcher matcher ( cv::NORM_HAMMING );
     matcher.match ( descriptors_ref_, descriptors_curr_, matches );
     // select the best matches
+    // 使用lamda函数来找最小距离
     float min_dis = std::min_element (
                         matches.begin(), matches.end(),
                         [] ( const cv::DMatch& m1, const cv::DMatch& m2 )
@@ -127,7 +132,7 @@ void VisualOdometry::featureMatching()
         return m1.distance < m2.distance;
     } )->distance;
 
-    feature_matches_.clear();
+    feature_matches_.clear(); // 清空防止重复
     for ( cv::DMatch& m : matches )
     {
         if ( m.distance < max<float> ( min_dis*match_ratio_, 30.0 ) )
@@ -146,13 +151,13 @@ void VisualOdometry::setRef3DPoints()
     for ( size_t i=0; i<keypoints_curr_.size(); i++ )
     {
         double d = ref_->findDepth(keypoints_curr_[i]);               
-        if ( d > 0)
+        if ( d > 0) // 只要depth是好的，就作为特征点
         {
             Vector3d p_cam = ref_->camera_->pixel2camera(
                 Vector2d(keypoints_curr_[i].pt.x, keypoints_curr_[i].pt.y), d
             );
             pts_3d_ref_.push_back( cv::Point3f( p_cam(0,0), p_cam(1,0), p_cam(2,0) ));
-            descriptors_ref_.push_back(descriptors_curr_.row(i));
+            descriptors_ref_.push_back(descriptors_curr_.row(i)); // 根据row id找到描述子
         }
     }
 }
@@ -165,8 +170,8 @@ void VisualOdometry::poseEstimationPnP()
     
     for ( cv::DMatch m:feature_matches_ )
     {
-        pts3d.push_back( pts_3d_ref_[m.queryIdx] );
-        pts2d.push_back( keypoints_curr_[m.trainIdx].pt );
+        pts3d.push_back( pts_3d_ref_[m.queryIdx] ); // reference作为3D
+        pts2d.push_back( keypoints_curr_[m.trainIdx].pt ); // 新检测的作为2D
     }
     
     Mat K = ( cv::Mat_<double>(3,3)<<
@@ -175,6 +180,7 @@ void VisualOdometry::poseEstimationPnP()
         0,0,1
     );
     Mat rvec, tvec, inliers;
+    // 用基于RANSAC的PNP求解位姿
     cv::solvePnPRansac( pts3d, pts2d, K, Mat(), rvec, tvec, false, 100, 4.0, 0.99, inliers );
     num_inliers_ = inliers.rows;
     cout<<"pnp inliers: "<<num_inliers_<<endl;
@@ -184,16 +190,18 @@ void VisualOdometry::poseEstimationPnP()
     );
 }
 
+// 给定一些pose不佳的先验条件，用于筛选好的Pose
 bool VisualOdometry::checkEstimatedPose()
 {
     // check if the estimated pose is good
+    // 根据inlier的个数来判断是否为好的pose
     if ( num_inliers_ < min_inliers_ )
     {
         cout<<"reject because inlier is too small: "<<num_inliers_<<endl;
         return false;
     }
     // if the motion is too large, it is probably wrong
-    Sophus::Vector6d d = T_c_r_estimated_.log();
+    Sophus::Vector6d d = T_c_r_estimated_.log(); // 使用对数映射得到李代数se3，向量的形式
     if ( d.norm() > 5.0 )
     {
         cout<<"reject because motion is too large: "<<d.norm()<<endl;
@@ -207,6 +215,7 @@ bool VisualOdometry::checkKeyFrame()
     Sophus::Vector6d d = T_c_r_estimated_.log();
     Vector3d trans = d.head<3>();
     Vector3d rot = d.tail<3>();
+    // 旋转或平移超过一定范围即可认为是关键帧
     if ( rot.norm() >key_frame_min_rot || trans.norm() >key_frame_min_trans )
         return true;
     return false;
@@ -215,7 +224,7 @@ bool VisualOdometry::checkKeyFrame()
 void VisualOdometry::addKeyFrame()
 {
     cout<<"adding a key-frame"<<endl;
-    map_->insertKeyFrame ( curr_ );
+    map_->insertKeyFrame ( curr_ ); // 无需传参，因为是类的函数，可以直接调用
 }
 
 }

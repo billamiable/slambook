@@ -23,7 +23,7 @@
 namespace myslam
 {
     
-class Frame;
+class Frame; // 前向申明
 class MapPoint
 {
 public:
@@ -32,7 +32,7 @@ public:
     Vector3d    pos_;       // Position in world
     Vector3d    norm_;      // Normal of viewing direction 
     Mat         descriptor_; // Descriptor for matching 
-    int         observed_times_;    // being observed by feature matching algo.
+    int         observed_times_;    // being observed by feature matching algorithm
     int         correct_times_;     // being an inliner in pose estimation
     
     MapPoint();

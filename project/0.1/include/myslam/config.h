@@ -27,14 +27,15 @@ namespace myslam
 class Config
 {
 private:
-    static std::shared_ptr<Config> config_; 
+    static std::shared_ptr<Config> config_; // 智能指针可以自动析构，不用再调用别的函数来做析构
     cv::FileStorage file_;
     
-    Config () {} // private constructor makes a singleton
+    Config () {} // private constructor makes a singleton，私有的构造函数
 public:
     ~Config();  // close the file when deconstructing 
     
     // set a new config file 
+    // 使用了单例设计模式，只能在setParameterFile函数内构造，防止对象在别处建立
     static void setParameterFile( const std::string& filename ); 
     
     // access the parameter values

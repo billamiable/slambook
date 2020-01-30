@@ -21,8 +21,8 @@
 #define MAP_H
 
 #include "myslam/common_include.h"
-#include "myslam/frame.h"
-#include "myslam/mappoint.h"
+#include "myslam/frame.h" // map has many keyframes
+#include "myslam/mappoint.h" // map has many mappoints
 
 namespace myslam
 {

@@ -21,12 +21,14 @@
 #define FRAME_H
 
 #include "myslam/common_include.h"
-#include "myslam/camera.h"
+#include "myslam/camera.h" // frame has a camera
 
 namespace myslam 
 {
     
 // forward declare 
+// 前向声明可使用在当某处要使用某种类型，而并不打算此时就定义这种类型
+// 或者可能还未明确该类型的具体成员，可先进行声明，以便进行引用。
 class MapPoint;
 class Frame
 {

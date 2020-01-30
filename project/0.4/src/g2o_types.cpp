@@ -20,7 +20,7 @@ void EdgeProjectXYZRGBD::linearizeOplus()
     double y = xyz_trans[1];
     double z = xyz_trans[2];
 
-    _jacobianOplusXi = - T.rotation().toRotationMatrix();
+    _jacobianOplusXi = - T.rotation().toRotationMatrix(); // 相比下面多的部分
 
     _jacobianOplusXj ( 0,0 ) = 0;
     _jacobianOplusXj ( 0,1 ) = -z;

@@ -34,6 +34,7 @@
 
 namespace myslam
 {
+// 既优化pose，又优化point
 class EdgeProjectXYZRGBD : public g2o::BaseBinaryEdge<3, Eigen::Vector3d, g2o::VertexSBAPointXYZ, g2o::VertexSE3Expmap>
 {
 public:
@@ -45,6 +46,7 @@ public:
     
 };
 
+// 只优化pose，不优化point
 // only to optimize the pose, no point
 class EdgeProjectXYZRGBDPoseOnly: public g2o::BaseUnaryEdge<3, Eigen::Vector3d, g2o::VertexSE3Expmap >
 {
@@ -60,6 +62,7 @@ public:
     Vector3d point_;
 };
 
+// 3D2D的PNP问题，只优化pose，不优化point
 class EdgeProjectXYZ2UVPoseOnly: public g2o::BaseUnaryEdge<2, Eigen::Vector2d, g2o::VertexSE3Expmap >
 {
 public:

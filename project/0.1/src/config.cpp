@@ -41,6 +41,6 @@ Config::~Config()
         file_.release();
 }
 
-shared_ptr<Config> Config::config_ = nullptr;
+shared_ptr<Config> Config::config_ = nullptr; // TO-DO：智能指针的使用方法有待研究
 
 }
