@@ -121,6 +121,7 @@ void VisualOdometry::featureMatching()
 {
     boost::timer timer;
     vector<cv::DMatch> matches;
+    // 匹配之前，从地图中取出一些候选点
     // select the candidates in map 
     Mat desp_map;
     vector<MapPoint::Ptr> candidate;
@@ -137,6 +138,7 @@ void VisualOdometry::featureMatching()
         }
     }
     
+    // 将候选点与当前帧的特征描述子进行匹配
     matcher_flann_.match ( desp_map, descriptors_curr_, matches );
     // select the best matches
     float min_dis = std::min_element (
@@ -218,7 +220,7 @@ void VisualOdometry::poseEstimationPnP()
         edge->setInformation ( Eigen::Matrix2d::Identity() );
         optimizer.addEdge ( edge );
         // set the inlier map points 
-        match_3dpts_[index]->matched_times_++; // 维护匹配点被匹配的次数
+        match_3dpts_[index]->matched_times_++; // 0.4版本新加的，维护匹配点被匹配的次数
     }
 
     optimizer.initializeOptimization();
@@ -263,11 +265,14 @@ bool VisualOdometry::checkKeyFrame()
     return false;
 }
 
+// 两种情况
+// 第一：初始化，即提取第一帧的特征点之后，将所有特征点放入地图中
+// 第二：正常，即满足一定条件后，将当前帧加入到关键帧中
 void VisualOdometry::addKeyFrame()
 {
+    // first key-frame, add all 3d points into map
     if ( map_->keyframes_.empty() )
     {
-        // first key-frame, add all 3d points into map
         for ( size_t i=0; i<keypoints_curr_.size(); i++ )
         {
             double d = curr_->findDepth ( keypoints_curr_[i] );
@@ -279,7 +284,7 @@ void VisualOdometry::addKeyFrame()
             Vector3d n = p_world - ref_->getCamCenter();
             n.normalize();
             MapPoint::Ptr map_point = MapPoint::createMapPoint(
-                p_world, n, descriptors_curr_.row(i).clone(), curr_.get()
+                p_world, n, descriptors_curr_.row(i).clone(), curr_.get() // 深拷贝防止修改
             );
             map_->insertMapPoint( map_point );
         }
@@ -289,10 +294,13 @@ void VisualOdometry::addKeyFrame()
     ref_ = curr_;
 }
 
+// 当map里特征点太少时，需要添加
 void VisualOdometry::addMapPoints()
 {
     // add the new map points into map
     vector<bool> matched(keypoints_curr_.size(), false); 
+    // match_2dkp_index_: matched 2d pixels (index of kp_curr)
+    // 只选择匹配上的特征点
     for ( int index:match_2dkp_index_ )
         matched[index] = true;
     for ( int i=0; i<keypoints_curr_.size(); i++ )
@@ -306,6 +314,7 @@ void VisualOdometry::addMapPoints()
             Vector2d ( keypoints_curr_[i].pt.x, keypoints_curr_[i].pt.y ), 
             curr_->T_c_w_, d
         );
+        // 计算norm方向，直接用世界坐标系的值减去光心即可
         Vector3d n = p_world - ref_->getCamCenter();
         n.normalize();
         MapPoint::Ptr map_point = MapPoint::createMapPoint(
@@ -315,6 +324,7 @@ void VisualOdometry::addMapPoints()
     }
 }
 
+// 对地图进行优化
 void VisualOdometry::optimizeMap()
 {
     // remove the hardly seen and no visible points 
@@ -325,6 +335,7 @@ void VisualOdometry::optimizeMap()
             iter = map_->map_points_.erase(iter);
             continue;
         }
+        // 这里是当不怎么看到时，也要删除
         float match_ratio = float(iter->second->matched_times_)/iter->second->visible_times_;
         if ( match_ratio < map_point_erase_ratio_ )
         {
@@ -333,6 +344,7 @@ void VisualOdometry::optimizeMap()
         }
         
         double angle = getViewAngle( curr_, iter->second );
+        // 当夹角超过30度，认为不是很正视时，就需要删除掉特征
         if ( angle > M_PI/6. )
         {
             iter = map_->map_points_.erase(iter);
@@ -345,6 +357,7 @@ void VisualOdometry::optimizeMap()
         iter++;
     }
     
+    // 在匹配数量减少时添加新点
     if ( match_2dkp_index_.size()<100 )
         addMapPoints();
     if ( map_->map_points_.size() > 1000 )  
@@ -361,7 +374,7 @@ double VisualOdometry::getViewAngle ( Frame::Ptr frame, MapPoint::Ptr point )
 {
     Vector3d n = point->pos_ - frame->getCamCenter();
     n.normalize();
-    return acos( n.transpose()*point->norm_ );
+    return acos( n.transpose()*point->norm_ ); // 表征的是相机光心到世界点连线与相机朝向之间的夹角
 }
 
 
