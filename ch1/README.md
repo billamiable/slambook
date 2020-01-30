@@ -67,7 +67,7 @@ Ubuntu 16.04
 
 **7、Linux的目录结构是什么样的？你知道哪些基本命令，比如ls, cat等等？**
 
-##### Linux目录结构
+#### Linux目录结构
 
 参考资料：https://www.runoob.com/linux/linux-system-contents.html
 
@@ -82,7 +82,7 @@ Ubuntu 16.04
 - /usr/src：内核源代码默认的放置目录。
 - /var：这是一个非常重要的目录，系统上跑了很多程序，那么每个程序都会有相应的日志产生，而这些日志就被记录到这个目录下，具体在/var/log 目录下，另外mail的预设放置也是在这里。
 
-##### Linux命令
+#### Linux命令
 
 参考资料：https://blog.csdn.net/ljianhui/article/details/11100625
 
