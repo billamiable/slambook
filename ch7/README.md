@@ -200,7 +200,6 @@ ICP将空间点优化加入，与原始只考虑位姿优化相比，一元边�
 
 Ceres的用法步骤：1）定义Cost Function模型；2）调用AddResidualBlock将误差项添加到目标函数中；3）自动求导需要指定误差项和优化变量得维度；4）定好问题后，调用solve函数求解。具体实现请见博客，[PNP](https://www.cnblogs.com/cc111/p/9457319.html)和[ICP](https://blog.csdn.net/luo870604851/article/details/82356394)。
 
---
 
 # 参考文献
 

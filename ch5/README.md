@@ -77,7 +77,6 @@ RGBD相机的标定：Kinect 1代的深度值是通过红外结构光的方式�
 见https://docs.opencv.org/master/d9/df8/tutorial_root.html。
 
 
---
 
 # 参考文献
 
