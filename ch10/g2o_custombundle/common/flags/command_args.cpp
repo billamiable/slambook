@@ -107,6 +107,7 @@ bool CommandArgs::parseArgs(int argc, char** argv, bool exitOnError)
     if (dashPos != string::npos)
       name = name.substr(dashPos);
 
+    // 输出帮助文档：-h
     if (name == "help" || name == "h") {
       printHelp(cout);
       exit(0);
@@ -510,6 +511,7 @@ std::istream& operator>>(std::istream& is, std::vector<double>& v){
   return is;
 }
 
+// 重载输出<<
 std::ostream& operator<<(std::ostream& os, const std::vector<double>& v)
 {
   if (v.size())

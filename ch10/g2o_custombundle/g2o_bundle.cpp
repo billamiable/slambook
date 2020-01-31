@@ -50,6 +50,9 @@ void BuildProblem(const BALProblem* bal_problem, g2o::SparseOptimizer* optimizer
     const double* raw_cameras = bal_problem->cameras();
     for(int i = 0; i < num_cameras; ++i)
     {
+        // ConstVectorRef即为Eigen::Map<const Eigen::VectorXd>
+        // Map类用于通过C++中普通的连续指针或者数组 （raw C/C++ arrays）来构造Eigen里的Matrix类
+        // 本质上就是一个引用，为了方便计算
         ConstVectorRef temVecCamera(raw_cameras + camera_block_size * i,camera_block_size);
         VertexCameraBAL* pCamera = new VertexCameraBAL();
         pCamera->setEstimate(temVecCamera);   // initial value for the camera i..
@@ -70,6 +73,7 @@ void BuildProblem(const BALProblem* bal_problem, g2o::SparseOptimizer* optimizer
         pPoint->setEstimate(temVecPoint);   // initial value for the point i..
         pPoint->setId(j + num_cameras);     // each vertex should have an unique id, no matter it is a camera vertex, or a point vertex 
 
+        // 为了充分利用BA中的稀疏性，需要将路标中的setMarginalized属性设置为true
         // remeber to add vertex into optimizer..
         pPoint->setMarginalized(true);
         optimizer->addVertex(pPoint);
@@ -98,11 +102,13 @@ void BuildProblem(const BALProblem* bal_problem, g2o::SparseOptimizer* optimizer
         bal_edge->setInformation(Eigen::Matrix2d::Identity());
         bal_edge->setMeasurement(Eigen::Vector2d(observations[2*i+0],observations[2*i + 1]));
 
-       optimizer->addEdge(bal_edge) ;
+        optimizer->addEdge(bal_edge) ;
     }
 
 }
 
+// write the optimized data into BALProblem class
+// 相当于输出优化数据
 void WriteToBALProblem(BALProblem* bal_problem, g2o::SparseOptimizer* optimizer)
 {
     const int num_points = bal_problem->num_points();
@@ -178,6 +184,8 @@ void SetSolverOptionsFromFlags(BALProblem* bal_problem, const BundleParams& para
         linearSolver = new g2o::LinearSolverDense<BalBlockSolver::PoseMatrixType>();
     }
     else if(params.linear_solver == "sparse_schur"){
+        // 使用sparse的schur补方法
+        // Cholmod是一个a sparse CHOLesky MODification package
         linearSolver = new g2o::LinearSolverCholmod<BalBlockSolver::PoseMatrixType>();
         dynamic_cast<g2o::LinearSolverCholmod<BalBlockSolver::PoseMatrixType>* >(linearSolver)->setBlockOrdering(true);  // AMD ordering , only needed for sparse cholesky solver
     }

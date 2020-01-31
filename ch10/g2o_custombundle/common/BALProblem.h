@@ -11,7 +11,7 @@ class BALProblem
 public:
     explicit BALProblem(const std::string& filename, bool use_quaternions = false);
     ~BALProblem(){
-        delete[] point_index_;
+        delete[] point_index_; // 指针数组
         delete[] camera_index_;
         delete[] observations_;
         delete[] parameters_;

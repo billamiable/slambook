@@ -35,7 +35,7 @@ double Median(std::vector<double>* data){
   return *mid_point;
 }
 
-
+// 构造函数
 BALProblem::BALProblem(const std::string& filename, bool use_quaternions){
   FILE* fptr = fopen(filename.c_str(), "r");
 
@@ -147,6 +147,7 @@ void BALProblem::WriteToFile(const std::string& filename)const{
   fclose(fptr);
 }
 
+// 用于可视化
 // Write the problem to a PLY file for inspection in Meshlab or CloudCompare
 void BALProblem::WriteToPLYFile(const std::string& filename)const{
   std::ofstream of(filename.c_str());
@@ -184,6 +185,7 @@ void BALProblem::WriteToPLYFile(const std::string& filename)const{
     of.close();
 }
 
+// 相机模型转化
 void BALProblem::CameraToAngelAxisAndCenter(const double* camera, 
                                             double* angle_axis,
                                             double* center) const{

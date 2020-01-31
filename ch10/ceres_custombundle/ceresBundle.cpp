@@ -9,6 +9,7 @@
 
 using namespace ceres;
 
+// ceres依靠Solver::Options的类型成员变量进行赋值来选择稠密或者稀疏的线性方程组解法
 void SetLinearSolver(ceres::Solver::Options* options, const BundleParams& params)
 {
     CHECK(ceres::StringToLinearSolverType(params.linear_solver, &options->linear_solver_type));
@@ -33,20 +34,24 @@ void SetOrdering(BALProblem* bal_problem, ceres::Solver::Options* options, const
     if (params.ordering == "automatic")
         return;
 
+    // ceres采用额外的类型ParameterBlockOrdering来管理schur消元顺序
     ceres::ParameterBlockOrdering* ordering = new ceres::ParameterBlockOrdering;
 
     // The points come before the cameras
     for(int i = 0; i < num_points; ++i)
-       ordering->AddElementToGroup(points + point_block_size * i, 0);
+       // 使用AddElementToGroup来对变量进行编号从而定义消元顺序
+       // 优先消元编号最小的变量
+       ordering->AddElementToGroup(points + point_block_size * i, 0); // 先消元point
        
     
     for(int i = 0; i < num_cameras; ++i)
-        ordering->AddElementToGroup(cameras + camera_block_size * i, 1);
+        ordering->AddElementToGroup(cameras + camera_block_size * i, 1); // 再消元camera位姿
 
     options->linear_solver_ordering.reset(ordering);
 
 }
 
+// ceres依靠Solver::Options的类型成员变量来调整不同的下降策略
 void SetMinimizerOptions(Solver::Options* options, const BundleParams& params){
     options->max_num_iterations = params.num_iterations;
     options->minimizer_progress_to_stdout = true;
@@ -83,15 +88,17 @@ void BuildProblem(BALProblem* bal_problem, Problem* problem, const BundleParams&
 
         // Each Residual block takes a point and a camera as input 
         // and outputs a 2 dimensional Residual
-      
+        // 简单地调用SnavelyReprojectionError.h中的函数来构建优化的目标函数
         cost_function = SnavelyReprojectionError::Create(observations[2*i + 0], observations[2*i + 1]);
 
         // If enabled use Huber's loss function. 
+        // 是否使用鲁棒核函数Huber函数
         LossFunction* loss_function = params.robustify ? new HuberLoss(1.0) : NULL;
 
         // Each observatoin corresponds to a pair of a camera and a point 
         // which are identified by camera_index()[i] and point_index()[i]
         // respectively.
+        // TO-DO: block_size的意义
         double* camera = cameras + camera_block_size * bal_problem->camera_index()[i];
         double* point = points + point_block_size * bal_problem->point_index()[i];
 

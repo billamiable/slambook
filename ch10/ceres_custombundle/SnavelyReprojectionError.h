@@ -8,6 +8,7 @@
 #include "common/tools/rotation.h"
 #include "common/projection.h"
 
+// 与之前的ceres优化问题构建类似
 class SnavelyReprojectionError
 {
 public:
