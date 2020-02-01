@@ -36,6 +36,7 @@ int main ( int argc, char** argv )
         return 1;
     }
 
+    // TO-DO：使用gtsam的因子图优化方法
     gtsam::NonlinearFactorGraph::shared_ptr graph ( new gtsam::NonlinearFactorGraph );  // gtsam的因子图
     gtsam::Values::shared_ptr initial ( new gtsam::Values ); // 初始值
     // 从g2o文件中读取节点和边的信息
@@ -85,6 +86,7 @@ int main ( int argc, char** argv )
             mgtsam.block<3,3> ( 0,3 ) = m.block<3,3> ( 0,3 ); // off diagonal
             mgtsam.block<3,3> ( 3,0 ) = m.block<3,3> ( 3,0 ); // off diagonal
             
+            // 单独书写噪声模型
             gtsam::SharedNoiseModel model = gtsam::noiseModel::Gaussian::Information ( mgtsam );        // 高斯噪声模型
             gtsam::NonlinearFactor::shared_ptr factor ( 
                 new gtsam::BetweenFactor<gtsam::Pose3> ( id1, id2, gtsam::Pose3 ( R,t ), model ) // 添加一个因子
@@ -107,6 +109,7 @@ int main ( int argc, char** argv )
     for ( const gtsam::Values::ConstKeyValuePair& key_value: *initial )
     {
         cout<<"Adding prior to g2o file "<<endl;
+        // prior先验因子
         graphWithPrior.add ( gtsam::PriorFactor<gtsam::Pose3> ( 
             key_value.key, key_value.value.cast<gtsam::Pose3>(), priorModel ) 
         );
@@ -118,7 +121,7 @@ int main ( int argc, char** argv )
     // 我们使用 LM 优化
     gtsam::LevenbergMarquardtParams params_lm;
     params_lm.setVerbosity("ERROR");
-    params_lm.setMaxIterations(20);
+    params_lm.setMaxIterations(20); // 事实上5次就收敛了
     params_lm.setLinearSolverType("MULTIFRONTAL_QR");
     gtsam::LevenbergMarquardtOptimizer optimizer_LM( graphWithPrior, *initial, params_lm );
     
@@ -136,7 +139,7 @@ int main ( int argc, char** argv )
 
     cout<<"done. write to g2o ... "<<endl;
     // 写入 g2o 文件，同样伪装成 g2o 中的顶点和边，以便用 g2o_viewer 查看。
-    // 顶点咯
+    // 顶点
     ofstream fout ( "result_gtsam.g2o" );
     for ( const gtsam::Values::ConstKeyValuePair& key_value: result )
     {
@@ -147,7 +150,7 @@ int main ( int argc, char** argv )
             <<p.x() <<" "<<p.y() <<" "<<p.z() <<" "
             <<q.x()<<" "<<q.y()<<" "<<q.z()<<" "<<q.w()<<" "<<endl;
     }
-    // 边咯 
+    // 边 
     for ( gtsam::NonlinearFactor::shared_ptr factor: *graph )
     {
         gtsam::BetweenFactor<gtsam::Pose3>::shared_ptr f = dynamic_pointer_cast<gtsam::BetweenFactor<gtsam::Pose3>>( factor );

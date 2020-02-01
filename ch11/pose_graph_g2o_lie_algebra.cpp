@@ -27,6 +27,7 @@ using Sophus::SO3;
 
 typedef Eigen::Matrix<double,6,6> Matrix6d;
 
+// TO-DO：以下部分关于李代数、雅克比的内容还需要理解
 // 给定误差求J_R^{-1}的近似
 Matrix6d JRInv( SE3 e )
 {
@@ -84,6 +85,8 @@ class EdgeSE3LieAlgebra: public g2o::BaseBinaryEdge<6, SE3, VertexSE3LieAlgebra,
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    // TO-DO：这里第一次把read和write给实现了
+    // 主要目的应该是为了模仿g2o的实现，从而让g2o viewer可以解析
     bool read ( istream& is )
     {
         double data[7];
@@ -94,6 +97,7 @@ public:
         setMeasurement (
             Sophus::SE3 ( q, Eigen::Vector3d ( data[0], data[1], data[2] ) ) 
         );
+        // 信息矩阵
         for ( int i=0; i<information().rows() && is.good(); i++ )
             for ( int j=i; j<information().cols() && is.good(); j++ )
             {
@@ -182,7 +186,7 @@ int main ( int argc, char** argv )
             int index = 0;
             fin>>index;
             v->setId( index );
-            v->read(fin);
+            v->read(fin); // 使用了read函数实现导入
             optimizer.addVertex(v);
             vertexCnt++;
             vectices.push_back(v);
@@ -214,13 +218,14 @@ int main ( int argc, char** argv )
     optimizer.optimize(30);
 
     cout<<"saving optimization results ..."<<endl;
+    // 这里的trick可以关注一下
     // 因为用了自定义顶点且没有向g2o注册，这里保存自己来实现
     // 伪装成 SE3 顶点和边，让 g2o_viewer 可以认出
     ofstream fout("result_lie.g2o");
     for ( VertexSE3LieAlgebra* v:vectices )
     {
         fout<<"VERTEX_SE3:QUAT ";
-        v->write(fout);
+        v->write(fout); // 使用了write函数
     }
     for ( EdgeSE3LieAlgebra* e:edges )
     {

@@ -40,10 +40,12 @@ int main( int argc, char** argv )
     optimizer.setAlgorithm( solver );   // 设置求解器
 
     int vertexCnt = 0, edgeCnt = 0; // 顶点和边的数量
+    // 人为写了读取g2o图的代码
     while ( !fin.eof() )
     {
         string name;
         fin>>name;
+        // 以下即为模拟g2o顶点和边的添加过程
         if ( name == "VERTEX_SE3:QUAT" )
         {
             // SE3 顶点
