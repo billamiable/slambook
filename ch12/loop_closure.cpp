@@ -16,6 +16,8 @@ int main( int argc, char** argv )
 {
     // read the images and database  
     cout<<"reading database"<<endl;
+    // 发现用更大的词典时，真正是回环的两帧得到的相似度更凸显了
+    // 说明在数据量较少的初期，增加数据的确对于性能有一定的提升
     DBoW3::Vocabulary vocab("./vocabulary.yml.gz");
     // DBoW3::Vocabulary vocab("./vocab_larger.yml.gz");  // use large vocab if you want: 
     if ( vocab.empty() )
@@ -44,13 +46,15 @@ int main( int argc, char** argv )
         descriptors.push_back( descriptor );
     }
     
+    // 两种方法：可以直接比较两帧图片提取的特征之间的描述子所构成的Bow向量，或者创建数据库来比较
     // we can compare the images directly or we can compare one image to a database 
     // images :
+    // 以下方法适用于图片比较少的时候
     cout<<"comparing images with images "<<endl;
     for ( int i=0; i<images.size(); i++ )
     {
         DBoW3::BowVector v1;
-        vocab.transform( descriptors[i], v1 );
+        vocab.transform( descriptors[i], v1 ); // 把描述子转化成向量
         for ( int j=i; j<images.size(); j++ )
         {
             DBoW3::BowVector v2;
@@ -65,11 +69,11 @@ int main( int argc, char** argv )
     cout<<"comparing images with database "<<endl;
     DBoW3::Database db( vocab, false, 0);
     for ( int i=0; i<descriptors.size(); i++ )
-        db.add(descriptors[i]);
+        db.add(descriptors[i]); // 添加到数据库
     cout<<"database info: "<<db<<endl;
     for ( int i=0; i<descriptors.size(); i++ )
     {
-        DBoW3::QueryResults ret;
+        DBoW3::QueryResults ret; // 然后执行数据库的query操作
         db.query( descriptors[i], ret, 4);      // max result=4
         cout<<"searching for image "<<i<<" returns "<<ret<<endl<<endl;
     }

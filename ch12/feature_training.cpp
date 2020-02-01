@@ -38,7 +38,7 @@ int main( int argc, char** argv )
     // create vocabulary 
     cout<<"creating vocabulary ... "<<endl;
     DBoW3::Vocabulary vocab;
-    vocab.create( descriptors );
+    vocab.create( descriptors ); // 简单地将描述子作为字典创建的输入即可
     cout<<"vocabulary info: "<<vocab<<endl;
     vocab.save( "vocabulary.yml.gz" );
     cout<<"done"<<endl;
