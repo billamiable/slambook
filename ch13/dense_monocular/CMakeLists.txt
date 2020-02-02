@@ -6,7 +6,10 @@ set( CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -fopenmp" )
 
 ############### dependencies ######################
 # Eigen
-include_directories( "/usr/include/eigen3" )
+# include_directories( "/usr/include/eigen3" )
+# in mac osx
+include_directories( /usr/local/Cellar/eigen/3.3.7/include/eigen3 )
+
 # OpenCV
 find_package( OpenCV 3.1 REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
