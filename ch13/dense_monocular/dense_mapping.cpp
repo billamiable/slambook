@@ -137,6 +137,7 @@ int main( int argc, char** argv )
         return -1;
     }
     
+    cout << "1"<<endl;
     // 从数据集读取数据
     vector<string> color_image_files; 
     vector<SE3> poses_TWC;

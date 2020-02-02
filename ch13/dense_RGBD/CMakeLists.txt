@@ -8,7 +8,9 @@ find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 # eigen 
-include_directories( "/usr/include/eigen3/" )
+# include_directories( "/usr/include/eigen3/" )
+# in mac osx
+include_directories( /usr/local/Cellar/eigen/3.3.7/include/eigen3 )
 
 # pcl 
 find_package( PCL REQUIRED COMPONENT common io filters )

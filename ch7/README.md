@@ -47,7 +47,7 @@
 
 ![](image/SURF_direction.png)
 
-5）构建关键点描述子：根据第4步检测出来的主方向构建正方形邻域，分为16个子区域，每个子区域统计25个像素的水平方向和垂直方向的Haar小波特征，具体为水平方向值之和、垂直方向值之和、水平方向绝对值之和以及垂直方向绝对值之和4个方向，因此一共有4\*4\*4=64维向量作为Surf特征的描述子。
+5）构建关键点描述子：根据第4步检测出来的主方向构建正方形邻域，分为16个子区域，每个子区域统计25个像素的水平方向和垂直方向的Haar小波特征，具体为水平方向值之和、垂直方向值之和、水平方向绝对值之和以及垂直方向绝对值之和4个方向，因此一共有4\*4\*4=64维向量作为SURF特征的描述子。
 
 6）特征点匹配：在SIFT的基础上，还加入了Hessian矩阵迹的判断，如果两个特征点的矩阵迹正负号相同，代表这两个特征具有相同方向上的对比度变化，如果不同，说明这两个特征点的对比度变化方向是相反的，即使欧氏距离为0，也直接予以排除。
 
@@ -113,7 +113,6 @@ imshow("1.png的SURF特征点",outImg);
 waitKey(0);
 ```
 
-以上代码具体可见本github中ch7的homework目录。
 
 terminal output
 
@@ -127,16 +126,21 @@ SURF keypoint number = 1048
 ```
 
 ORB特征点可视化图
+
 ![](image/ORB.png)
 
 SIFT特征点可视化图
+
 ![](image/SIFT.png)
 
 SURF特征点可视化图
+
 ![](image/SURF.png)
 
 注：SURF检测到的关键点个数无法直接给定，只能通过控制threshold来调整，因此这里不为严格的1000个。综上发现，ORB的速度最快，其次是SURF，最差是SIFT。ORB分布基本在角点和边缘处，SIFT和SURF分布则更均匀。
 
+
+以上代码具体可见本github中ch7的homework目录。
 
 **3、我们发现OpenCV提供的ORB特征点，在图像当中分布不够均匀。你是否能够找到或提出让特征点分布更加均匀的方法?**
 
@@ -153,7 +157,7 @@ SURF特征点可视化图
 - https://blog.csdn.net/jinxueliu31/article/details/37768995
 - https://blog.csdn.net/jiahao62/article/details/80655542
 
-FLANN表示fast library for approximate nearest neighbors，用于寻找高维特征的最近邻数据。根据数据集的方差分布来划分，并用KD-Tree等方法加速搜索，从而实现快速匹配。（KD-Tree底层是一个二叉树的实现，待研究）
+FLANN表示fast library for approximate nearest neighbors，用于寻找高维特征的最近邻数据。根据数据集的方差分布来划分，并用KD-Tree等方法加速搜索，从而实现快速匹配。（KD-Tree底层是一个二叉树的实现，类似于层次聚类方法，具体待研究）
 
 加速匹配的手段：对于高维特征，目前来说最有效的方法是 the randomized k-d forest和the priority search k-means tree，而对于二值特征的匹配 multiple hierarchical clusteringtrees则比LSH方法更加有效。
 

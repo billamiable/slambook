@@ -2,7 +2,10 @@ cmake_minimum_required( VERSION 2.8 )
 project( dense_monocular )
 
 set(CMAKE_BUILD_TYPE "Release")
-set( CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -fopenmp" )
+# set( CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3 -fopenmp" )
+# mac os端需要在llvm下才能同时运行openmp和opencv，这里先不用openmp
+# 另外mac os不需要用-march=native -O3指令
+set( CMAKE_CXX_FLAGS "-std=c++11" )
 
 ############### dependencies ######################
 # Eigen
