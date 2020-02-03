@@ -50,7 +50,7 @@ int main( int argc, char** argv )
     cout<<"正在将图像转换为 Octomap ..."<<endl;
     
     // octomap tree 
-    octomap::OcTree tree( 0.05 ); // 参数为分辨率
+    octomap::OcTree tree( 0.05 ); // 参数为分辨率，表示每个小块的边长为0.05米
     
     for ( int i=0; i<5; i++ )
     {
@@ -77,7 +77,7 @@ int main( int argc, char** argv )
             }
             
         // 将点云存入八叉树地图，给定原点，这样可以计算投射线
-        tree.insertPointCloud( cloud, octomap::point3d( T(0,3), T(1,3), T(2,3) ) );     
+        tree.insertPointCloud( cloud, octomap::point3d( T(0,3), T(1,3), T(2,3) ) ); // 封装了    
     }
     
     // 更新中间节点的占据信息并写入磁盘

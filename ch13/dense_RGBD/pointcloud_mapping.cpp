@@ -86,24 +86,26 @@ int main( int argc, char** argv )
                 current->points.push_back( p );
             }
         // depth filter and statistical removal 
+        // 利用统计滤波器去除孤立点，统计每个点与它最近N个点的距离分布，去除距离均值过大的点
         PointCloud::Ptr tmp ( new PointCloud );
         pcl::StatisticalOutlierRemoval<PointT> statistical_filter;
-        statistical_filter.setMeanK(50);
+        statistical_filter.setMeanK(50); // 设置均值参数
         statistical_filter.setStddevMulThresh(1.0);
         statistical_filter.setInputCloud(current);
         statistical_filter.filter( *tmp );
-        (*pointCloud) += *tmp;
+        (*pointCloud) += *tmp; // TO-DO: 不断加入数据点，pcl的操作有待研究
     }
     
     pointCloud->is_dense = false;
     cout<<"点云共有"<<pointCloud->size()<<"个点."<<endl;
     
     // voxel filter 
+    // 利用体素滤波器进行降采样，保证在一定大小的体素中仅有一个点
     pcl::VoxelGrid<PointT> voxel_filter; 
     voxel_filter.setLeafSize( 0.01, 0.01, 0.01 );       // resolution 
     PointCloud::Ptr tmp ( new PointCloud );
     voxel_filter.setInputCloud( pointCloud );
-    voxel_filter.filter( *tmp );
+    voxel_filter.filter( *tmp ); // 封装在filter函数内
     tmp->swap( *pointCloud );
     
     cout<<"滤波之后，点云共有"<<pointCloud->size()<<"个点."<<endl;

@@ -136,12 +136,11 @@ int main( int argc, char** argv )
         cout<<"Usage: dense_mapping path_to_test_dataset"<<endl;
         return -1;
     }
-    
-    cout << "1"<<endl;
+
     // 从数据集读取数据
     vector<string> color_image_files; 
     vector<SE3> poses_TWC;
-    bool ret = readDatasetFiles( argv[1], color_image_files, poses_TWC );
+    bool ret = readDatasetFiles( argv[1], color_image_files, poses_TWC ); // 包含位姿
     if ( ret==false )
     {
         cout<<"Reading image files failed!"<<endl;
@@ -154,9 +153,11 @@ int main( int argc, char** argv )
     SE3 pose_ref_TWC = poses_TWC[0];
     double init_depth   = 3.0;    // 深度初始值
     double init_cov2    = 3.0;    // 方差初始值 
+    // Mat初始化方法
     Mat depth( height, width, CV_64F, init_depth );             // 深度图
     Mat depth_cov( height, width, CV_64F, init_cov2 );          // 深度图方差 
     
+    // 大约到第30个iteration，即加入30张图作为深度估计的约束后收敛
     for ( int index=1; index<color_image_files.size(); index++ )
     {
         cout<<"*** loop "<<index<<" ***"<<endl;
@@ -164,7 +165,7 @@ int main( int argc, char** argv )
         if (curr.data == nullptr) continue;
         SE3 pose_curr_TWC = poses_TWC[index];
         SE3 pose_T_C_R = pose_curr_TWC.inverse() * pose_ref_TWC; // 坐标转换关系： T_C_W * T_W_R = T_C_R 
-        update( ref, curr, pose_T_C_R, depth, depth_cov );
+        update( ref, curr, pose_T_C_R, depth, depth_cov ); // 遍历每个像素，极线匹配并更新
         plotDepth( depth );
         imshow("image", curr);
         waitKey(1);
@@ -195,6 +196,7 @@ bool readDatasetFiles(
         for ( double& d:data ) fin>>d;
         
         color_image_files.push_back( path+string("/images/")+image );
+        // 关于Pose的前后顺序问题，以后都要注意
         poses.push_back(
             SE3( Quaterniond(data[6], data[3], data[4], data[5]), 
                  Vector3d(data[0], data[1], data[2]))
@@ -207,30 +209,33 @@ bool readDatasetFiles(
 // 对整个深度图进行更新
 bool update(const Mat& ref, const Mat& curr, const SE3& T_C_R, Mat& depth, Mat& depth_cov )
 {
+// 使用openmp进行并行计算
+// 编译时选择不使用openmp也能正常运行代码
 #pragma omp parallel for
     for ( int x=boarder; x<width-boarder; x++ )
 #pragma omp parallel for
         for ( int y=boarder; y<height-boarder; y++ )
         {
-			// 遍历每个像素
-            if ( depth_cov.ptr<double>(y)[x] < min_cov || depth_cov.ptr<double>(y)[x] > max_cov ) // 深度已收敛或发散
+			      // 遍历每个像素
+            // 参考帧的深度已收敛或发散
+            if ( depth_cov.ptr<double>(y)[x] < min_cov || depth_cov.ptr<double>(y)[x] > max_cov )
                 continue;
             // 在极线上搜索 (x,y) 的匹配 
             Vector2d pt_curr; 
             bool ret = epipolarSearch ( 
-                ref, 
-                curr, 
-                T_C_R, 
-                Vector2d(x,y), 
-                depth.ptr<double>(y)[x], 
+                ref,  // 参考帧
+                curr, // 当前帧
+                T_C_R, // 参考帧与当前帧的位姿变换
+                Vector2d(x,y), // 参考帧的坐标
+                depth.ptr<double>(y)[x], // 参考帧某个坐标点的深度值
                 sqrt(depth_cov.ptr<double>(y)[x]),
-                pt_curr
+                pt_curr // 输出最佳的当前帧对应的坐标值
             );
             
             if ( ret == false ) // 匹配失败
                 continue; 
             
-			// 取消该注释以显示匹配
+			      // 取消该注释以显示匹配
             // showEpipolarMatch( ref, curr, Vector2d(x,y), pt_curr );
             
             // 匹配成功，更新深度图 
@@ -248,11 +253,12 @@ bool epipolarSearch(
 {
     Vector3d f_ref = px2cam( pt_ref );
     f_ref.normalize();
-    Vector3d P_ref = f_ref*depth_mu;	// 参考帧的 P 向量
+    Vector3d P_ref = f_ref*depth_mu;	// 参考帧的 P 向量，参考相机坐标系下的3D坐标值
     
     Vector2d px_mean_curr = cam2px( T_C_R*P_ref ); // 按深度均值投影的像素
     double d_min = depth_mu-3*depth_cov, d_max = depth_mu+3*depth_cov;
     if ( d_min<0.1 ) d_min = 0.1;
+    // 根据深度值的上下限进行投影，得到极线的两个端点
     Vector2d px_min_curr = cam2px( T_C_R*(f_ref*d_min) );	// 按最小深度投影的像素
     Vector2d px_max_curr = cam2px( T_C_R*(f_ref*d_max) );	// 按最大深度投影的像素
     
@@ -262,15 +268,16 @@ bool epipolarSearch(
     double half_length = 0.5*epipolar_line.norm();	// 极线线段的半长度
     if ( half_length>100 ) half_length = 100;   // 我们不希望搜索太多东西 
     
-	// 取消此句注释以显示极线（线段）
+	  // 取消此句注释以显示极线（线段）
     // showEpipolarLine( ref, curr, pt_ref, px_min_curr, px_max_curr );
     
     // 在极线上搜索，以深度均值点为中心，左右各取半长度
     double best_ncc = -1.0;
     Vector2d best_px_curr; 
-    for ( double l=-half_length; l<=half_length; l+=0.7 )  // l+=sqrt(2) 
+    for ( double l=-half_length; l<=half_length; l+=0.7 )  // l+=sqrt(2)/2，以0.7个像素为步长
     {
         Vector2d px_curr = px_mean_curr + l*epipolar_direction;  // 待匹配点
+        // 检测一个点是否在图像边框内
         if ( !inside(px_curr) )
             continue; 
         // 计算待匹配点与参考帧的 NCC
@@ -296,35 +303,40 @@ double NCC (
     // 先算均值
     double mean_ref = 0, mean_curr = 0;
     vector<double> values_ref, values_curr; // 参考帧和当前帧的均值
+    // 设置一个window size，用于匹配
     for ( int x=-ncc_window_size; x<=ncc_window_size; x++ )
         for ( int y=-ncc_window_size; y<=ncc_window_size; y++ )
         {
+            // pt_ref为参考帧的坐标值
             double value_ref = double(ref.ptr<uchar>( int(y+pt_ref(1,0)) )[ int(x+pt_ref(0,0)) ])/255.0;
             mean_ref += value_ref;
             
+            // 坐标值为浮点数，需要做双线性插值获得整数值坐标
             double value_curr = getBilinearInterpolatedValue( curr, pt_curr+Vector2d(x,y) );
             mean_curr += value_curr;
             
+            // 将要比较的数据放到vector中
             values_ref.push_back(value_ref);
             values_curr.push_back(value_curr);
         }
         
-    mean_ref /= ncc_area;
+    mean_ref /= ncc_area; // 在代码最开始部分定义
     mean_curr /= ncc_area;
     
 	// 计算 Zero mean NCC
     double numerator = 0, demoniator1 = 0, demoniator2 = 0;
     for ( int i=0; i<values_ref.size(); i++ )
     {
-        double n = (values_ref[i]-mean_ref) * (values_curr[i]-mean_curr);
+        double n = (values_ref[i]-mean_ref) * (values_curr[i]-mean_curr); // n*m
         numerator += n;
-        demoniator1 += (values_ref[i]-mean_ref)*(values_ref[i]-mean_ref);
-        demoniator2 += (values_curr[i]-mean_curr)*(values_curr[i]-mean_curr);
+        demoniator1 += (values_ref[i]-mean_ref)*(values_ref[i]-mean_ref); // n*n
+        demoniator2 += (values_curr[i]-mean_curr)*(values_curr[i]-mean_curr); // m*m
     }
     return numerator / sqrt( demoniator1*demoniator2+1e-10 );   // 防止分母出现零
 }
 
 bool updateDepthFilter(
+    // 下面两个相当于两帧匹配好的坐标点
     const Vector2d& pt_ref, 
     const Vector2d& pt_curr, 
     const SE3& T_C_R,
@@ -334,7 +346,9 @@ bool updateDepthFilter(
 {
     // 我是一只喵
     // 不知道这段还有没有人看
+    // 哈哈哈哈，高博好逗！
     // 用三角化计算深度
+    // 将图像坐标系坐标都转换成归一化相机坐标系坐标
     SE3 T_R_C = T_C_R.inverse();
     Vector3d f_ref = px2cam( pt_ref );
     f_ref.normalize();
@@ -342,49 +356,60 @@ bool updateDepthFilter(
     f_curr.normalize();
     
     // 方程
+    // 特征点的匹配公式，基础定义
     // d_ref * f_ref = d_cur * ( R_RC * f_cur ) + t_RC
-    // => [ f_ref^T f_ref, -f_ref^T f_cur ] [d_ref] = [f_ref^T t]
-    //    [ f_cur^T f_ref, -f_cur^T f_cur ] [d_cur] = [f_cur^T t]
+    // 下面的公式本来应该写错了，缺少了R_RC
+    // 以下每一项最后都是1*1，所以-f_ref^T R_RC f_cur = - (R_RC f_cur)^T f_ref
+    // => [ f_ref^T f_ref,        -f_ref^T R_RC f_cur        ] [d_ref] = [f_ref^T t]
+    //    [ (R_RC f_cur)^T f_ref, -(R_RC f_cur)^T R_RC f_cur ] [d_cur] = [(R_RC f_cur)^T t]
+    // 这是一种方法，也可以用乘以x1^的方式快速求解
     // 二阶方程用克莱默法则求解并解之
+    // [a b] ^ -1 = 1/ad-bc * [d  -b]
+    // [c d]                  [-c a ]
     Vector3d t = T_R_C.translation();
-    Vector3d f2 = T_R_C.rotation_matrix() * f_curr; 
-    Vector2d b = Vector2d ( t.dot ( f_ref ), t.dot ( f2 ) );
+    Vector3d f2 = T_R_C.rotation_matrix() * f_curr; // R_RC * f_cur
+    Vector2d b = Vector2d ( t.dot ( f_ref ), t.dot ( f2 ) ); // 右侧向量
+    // 以下建模克莱默法则的[a b; c d]矩阵
     double A[4];
-    A[0] = f_ref.dot ( f_ref );
-    A[2] = f_ref.dot ( f2 );
-    A[1] = -A[2];
-    A[3] = - f2.dot ( f2 );
-    double d = A[0]*A[3]-A[1]*A[2];
+    A[0] = f_ref.dot ( f_ref ); // a
+    A[2] = f_ref.dot ( f2 );    // c
+    A[1] = -A[2];               // b
+    A[3] = - f2.dot ( f2 );     // d
+
+    double d = A[0]*A[3]-A[1]*A[2]; // ad-bc
+
     Vector2d lambdavec = 
         Vector2d (  A[3] * b ( 0,0 ) - A[1] * b ( 1,0 ),
-                    -A[2] * b ( 0,0 ) + A[0] * b ( 1,0 )) /d;
-    Vector3d xm = lambdavec ( 0,0 ) * f_ref;
-    Vector3d xn = t + lambdavec ( 1,0 ) * f2;
+                    -A[2] * b ( 0,0 ) + A[0] * b ( 1,0 )) /d; // 克莱默法则
+    Vector3d xm = lambdavec ( 0,0 ) * f_ref; // d_ref * f_ref
+    Vector3d xn = t + lambdavec ( 1,0 ) * f2; // d_cur * R_RC * f_cur + t
+    // 由于xm与xn不完全一样，因此需要做一个平均处理
     Vector3d d_esti = ( xm+xn ) / 2.0;  // 三角化算得的深度向量
+    // 得到参考帧的深度，由于坐标是归一化的，因此求norm正好就是前面的系数，即为深度值
     double depth_estimation = d_esti.norm();   // 深度值
     
-    // 计算不确定性（以一个像素为误差）
+    // 计算单个像素的不确定性引起的深度不确定性（以一个像素为误差）
     Vector3d p = f_ref*depth_estimation;
     Vector3d a = p - t; 
     double t_norm = t.norm();
     double a_norm = a.norm();
-    double alpha = acos( f_ref.dot(t)/t_norm );
+    double alpha = acos( f_ref.dot(t)/t_norm ); // f_ref是归一化的，所以不用除
     double beta = acos( -a.dot(t)/(a_norm*t_norm));
     double beta_prime = beta + atan(1/fx);
     double gamma = M_PI - alpha - beta_prime;
     double p_prime = t_norm * sin(beta_prime) / sin(gamma);
-    double d_cov = p_prime - depth_estimation; 
-    double d_cov2 = d_cov*d_cov;
+    double d_cov = p_prime - depth_estimation; // depth_estimation就是p的norm
+    double d_cov2 = d_cov*d_cov; // observation的协方差
     
     // 高斯融合
-    double mu = depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ];
-    double sigma2 = depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ];
+    double mu = depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth值
+    double sigma2 = depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth的协方差值
     
-    double mu_fuse = (d_cov2*mu+sigma2*depth_estimation) / ( sigma2+d_cov2);
-    double sigma_fuse2 = ( sigma2 * d_cov2 ) / ( sigma2 + d_cov2 );
+    double mu_fuse = (d_cov2*mu+sigma2*depth_estimation) / ( sigma2+d_cov2); // 均值的融合
+    double sigma_fuse2 = ( sigma2 * d_cov2 ) / ( sigma2 + d_cov2 ); // 方差的融合
     
-    depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = mu_fuse; 
-    depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = sigma_fuse2;
+    depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = mu_fuse; // 均值的更新
+    depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = sigma_fuse2; // 方差的更新
     
     return true;
 }
