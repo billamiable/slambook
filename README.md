@@ -1,5 +1,13 @@
 
 # 视觉SLAM十四讲代码注释与习题答案解析
+
+本repo包含了两部分内容：代码注释和习题解析，其中代码注释在原有代码的基础上做了标注，方便理解；习题解析位于每个chapter的README.md文件中。习题解析借鉴了很多前辈的博客，在此列出主要参考的几篇：
+
+- 最全的：https://blog.csdn.net/jiahao62/article/details/80655542
+- 包含第7章之后的：https://blog.csdn.net/qq_35590091/article/details/95987844
+- 个人网站（写得很详细）：https://blog.mengoreo.cn/tags/slam/
+- 个人网站（可能是第二版的习题）：https://www.xlmaverick.me/tags/
+
 # NOTE
 [Slambook 2](https://github.com/gaoxiang12/slambook2) has be released since 2019.8 which has better support on Ubuntu 18.04 and has a lot of new features. Slambook 1 will still be available on github but I suggest new readers switch to the second version. 
 # slambook
