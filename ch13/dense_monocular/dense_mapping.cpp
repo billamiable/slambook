@@ -216,6 +216,13 @@ bool update(const Mat& ref, const Mat& curr, const SE3& T_C_R, Mat& depth, Mat& 
 #pragma omp parallel for
         for ( int y=boarder; y<height-boarder; y++ )
         {
+            // homework
+            // 将稠密深度估计改成半稠密深度估计，把梯度明显的地方筛选出来
+            // Eigen::Vector2d gradient(
+            //     ref.ptr<uchar>(y)[x+1]-ref.ptr<uchar>(y)[x-1],
+            //     ref.ptr<uchar>(y+1)[x]-ref.ptr<uchar>(y-1)[x]);
+            // if(gradient.norm()<10) continue; // 50
+
 			      // 遍历每个像素
             // 参考帧的深度已收敛或发散
             if ( depth_cov.ptr<double>(y)[x] < min_cov || depth_cov.ptr<double>(y)[x] > max_cov )
