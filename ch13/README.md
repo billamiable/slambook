@@ -16,14 +16,16 @@
 
 参考资料：https://www.cnblogs.com/cc111/p/9688441.html
 
-由于需要将梯度明显的地方筛选出来，因此只需要将dense_mapping中update函数的for循环最开始，即“//遍历每个像素”前面加上以下代码即可：
+由于需要将梯度明显的地方筛选出来，因此只需要将dense_mapping中update函数的for循环最开始，即“//遍历每个像素”前面加上以下代码，此处设置SEMI\_SPARSE作为判断稠密估计还是半稠密估计的FLAG：
 
 ```cpp
 // 将稠密深度估计改成半稠密深度估计，把梯度明显的地方筛选出来
-Eigen::Vector2d gradient(
-    ref.ptr<uchar>(y)[x+1]-ref.ptr<uchar>(y)[x-1],
-    ref.ptr<uchar>(y+1)[x]-ref.ptr<uchar>(y-1)[x]);
-if(gradient.norm()<10) continue; // 50
+if ( SEMI_SPARSE ){
+    Eigen::Vector2d gradient(
+        ref.ptr<uchar>(y)[x+1]-ref.ptr<uchar>(y)[x-1],
+        ref.ptr<uchar>(y+1)[x]-ref.ptr<uchar>(y-1)[x]);
+    if(gradient.norm()<10) continue; // 50
+}
 ```
 
 其中10和50是可以人为设置的阈值，用来筛选梯度，以下给出两种阈值下的深度估计结果：
@@ -38,11 +40,93 @@ if(gradient.norm()<10) continue; // 50
 
 在运行过程中发现，设置阈值为50时系统很快就收敛了，设置阈值为10时则慢很多。这符合逻辑，阈值越大，表示对梯度值的要求越高，因此符合要求的点越少，计算复杂度低，因此收敛快。
 
-以上代码具体可见ch13/dense_monocular/dense_mapping.cpp。
+以上代码具体可见ch13/dense_monocular/dense\_mapping.cpp。
 
 
 **3、把本讲演示的单目稠密重建代码，从正深度改成逆深度，并添加仿射变换。你的实验效果是否有改进?**
 
+#### 从正深度改成逆深度
+
+由于假设逆深度符合高斯分布，因此在实现上设定逆深度的均值为原先正深度的倒数，逆深度的方差则维持与正深度的一致，因为方差最终会随着深度值的更新而收敛，因此不对初值做特殊设置。与原始的正深度代码相比，为了改成逆深度主要有两处需要修改：
+
+- epipolar search环节：确定epipolar line的两个端点时，需要左右取三倍方差的范围；
+- update depth filter环节：涉及到了高斯融合，进行深度值更新。
+
+代码修改如下，此处设置INVERSE\_DEPTH作为判断正深度还是逆深度的FLAG：
+
+- epipolarSearch函数：
+
+```cpp
+double d_max, d_min;
+if ( INVERSE_DEPTH ){
+    // 这里假设逆深度的均值初值为1/depth_mu，方差均值为depth_cov
+    // 方差之所以与之前一样是因为，此处设定为初值，最后由于有深度的更新会慢慢收敛
+    // 因此方差的初值设定为具体什么值显得不是很重要
+    double in_d_min = 1/depth_mu - 3*depth_cov, in_d_max = 1/depth_mu + 3*depth_cov;
+    if ( in_d_min<0.01 ) in_d_min = 0.01; // 保证逆深度不为负
+    d_max = 1/in_d_min;
+    d_min = 1/in_d_max;
+    if( d_min<0.1 ) d_min = 0.1;
+}
+else{
+    d_min = depth_mu-3*depth_cov, d_max = depth_mu+3*depth_cov;
+    if ( d_min<0.1 ) d_min = 0.1;
+}
+```
+
+- updateDepthFilter函数：
+
+```cpp
+if ( INVERSE_DEPTH ){
+    // 以下与均值相关的变量均取倒数，与方差相关的变量维持不变
+    double d_cov = 1/p_prime - 1/depth_estimation; // 逆深度的像素扰动
+    double d_cov2 = d_cov*d_cov;
+
+    // 高斯融合
+    double mu = depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth值
+    double sigma2 = depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth的协方差值
+
+    double mu_fuse = (d_cov2/mu+sigma2/depth_estimation) / ( sigma2+d_cov2); // 均值的融合
+    double sigma_fuse2 = ( sigma2 * d_cov2 ) / ( sigma2 + d_cov2 ); // 方差的融合
+    
+    depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = 1/mu_fuse; // 均值的更新
+    depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = sigma_fuse2; // 方差的更新
+}
+else{
+    double d_cov = p_prime - depth_estimation; // depth_estimation就是p的norm
+    double d_cov2 = d_cov*d_cov; // observation的协方差
+    
+    // 高斯融合
+    double mu = depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth值
+    double sigma2 = depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth的协方差值
+    
+    double mu_fuse = (d_cov2*mu+sigma2*depth_estimation) / ( sigma2+d_cov2); // 均值的融合
+    double sigma_fuse2 = ( sigma2 * d_cov2 ) / ( sigma2 + d_cov2 ); // 方差的融合
+    
+    depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = mu_fuse; // 均值的更新
+    depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = sigma_fuse2; // 方差的更新
+}
+```
+
+对比迭代30次后的结果图：
+
+使用正深度
+
+![](image/depth.png)
+
+使用逆深度
+
+![](image/inverse_depth.png)
+
+改成逆深度后，算法的运行速度有所提升，最后收敛时地面的深度估计更加均匀，但是与使用正深度一样，没有纹理的打印机表面等仍会出现带状的错误估计。
+
+
+#### 添加仿射变换
+
+目前的思路是直接对参考帧的像素点加上小的平移量，然后根据参考帧与当前帧的位姿关系投影到当前帧，获得对应的像素值，用于计算NCC值。但是这部分代码和推导上仍有问题，待解决。
+
+
+以上代码具体可见ch13/dense_monocular/dense\_mapping.cpp。
 
 
 
@@ -68,7 +152,7 @@ TSDF的更新是通过加权平均的方式实现的，具体为对于每一个�
 与之前的定位建图算法的异同：
 
 - 相同点：都是通过融合过去和当前帧的数据进行更新；
-- 不同点：Octomap是通过高斯概率相乘的方式进行融合更新，这里是通过加权平均的方式。此外两者的表征不同，Octomap是以八叉树来表征环境，这里则是用TSDF的形式（空间点与表面的关系）来建模环境的。
+- 不同点：Octomap是通过高斯概率相乘的方式进行融合更新，这里是通过加权平均的方式；此外两者的表征不同，Octomap是以八叉树来表征环境，这里则是用TSDF的形式（空间点与表面的关系）来建模环境的。
 
 
 **6、研究均匀——高斯混合滤波器的原理与实现。**

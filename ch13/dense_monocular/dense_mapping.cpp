@@ -25,7 +25,13 @@ using namespace cv;
 * 请注意本程序并不完美，你完全可以改进它——我其实在故意暴露一些问题。
 ***********************************************/
 
-
+// 包含了homework，故设立几个FLAG用于区分不同的作业
+// 稠密深度估计变为半稠密深度估计
+const int SEMI_SPARSE = 0;
+// 使用逆深度代替深度
+const int INVERSE_DEPTH = 0;
+// 使用仿射变换
+const int AFFINE_TRANSFORM = 0;
 
 // ------------------------------------------------------------------
 // parameters 
@@ -80,7 +86,7 @@ bool updateDepthFilter(
 );
 
 // 计算 NCC 评分 
-double NCC( const Mat& ref, const Mat& curr, const Vector2d& pt_ref, const Vector2d& pt_curr );
+double NCC( const Mat& ref, const Mat& curr, const Vector2d& pt_ref, const Vector2d& pt_curr, const SE3& T_C_R );
 
 // 双线性灰度插值 
 inline double getBilinearInterpolatedValue( const Mat& img, const Vector2d& pt ) {
@@ -218,11 +224,13 @@ bool update(const Mat& ref, const Mat& curr, const SE3& T_C_R, Mat& depth, Mat& 
         {
             // homework
             // 将稠密深度估计改成半稠密深度估计，把梯度明显的地方筛选出来
-            // Eigen::Vector2d gradient(
-            //     ref.ptr<uchar>(y)[x+1]-ref.ptr<uchar>(y)[x-1],
-            //     ref.ptr<uchar>(y+1)[x]-ref.ptr<uchar>(y-1)[x]);
-            // if(gradient.norm()<10) continue; // 50
-
+            if ( SEMI_SPARSE ){
+                Eigen::Vector2d gradient(
+                    ref.ptr<uchar>(y)[x+1]-ref.ptr<uchar>(y)[x-1],
+                    ref.ptr<uchar>(y+1)[x]-ref.ptr<uchar>(y-1)[x]);
+                if(gradient.norm()<10) continue; // 50
+            }
+            
 			      // 遍历每个像素
             // 参考帧的深度已收敛或发散
             if ( depth_cov.ptr<double>(y)[x] < min_cov || depth_cov.ptr<double>(y)[x] > max_cov )
@@ -262,9 +270,24 @@ bool epipolarSearch(
     f_ref.normalize();
     Vector3d P_ref = f_ref*depth_mu;	// 参考帧的 P 向量，参考相机坐标系下的3D坐标值
     
-    Vector2d px_mean_curr = cam2px( T_C_R*P_ref ); // 按深度均值投影的像素
-    double d_min = depth_mu-3*depth_cov, d_max = depth_mu+3*depth_cov;
-    if ( d_min<0.1 ) d_min = 0.1;
+    Vector2d px_mean_curr = cam2px( T_C_R*P_ref ); // 按深度均值投影的像素，位于当前帧坐标系
+    
+    double d_max, d_min;
+    if ( INVERSE_DEPTH ){
+        // 这里假设逆深度的均值初值为1/depth_mu，方差均值为depth_cov
+        // 方差之所以与之前一样是因为，此处设定为初值，最后由于有深度的更新会慢慢收敛
+        // 因此方差的初值设定为具体什么值显得不是很重要
+        double in_d_min = 1/depth_mu - 3*depth_cov, in_d_max = 1/depth_mu + 3*depth_cov;
+        if ( in_d_min<0.01 ) in_d_min = 0.01; // 保证逆深度不为负
+        d_max = 1/in_d_min;
+        d_min = 1/in_d_max;
+        if( d_min<0.1 ) d_min = 0.1;
+    }
+    else{
+        d_min = depth_mu-3*depth_cov, d_max = depth_mu+3*depth_cov;
+        if ( d_min<0.1 ) d_min = 0.1;
+    }
+    
     // 根据深度值的上下限进行投影，得到极线的两个端点
     Vector2d px_min_curr = cam2px( T_C_R*(f_ref*d_min) );	// 按最小深度投影的像素
     Vector2d px_max_curr = cam2px( T_C_R*(f_ref*d_max) );	// 按最大深度投影的像素
@@ -283,12 +306,12 @@ bool epipolarSearch(
     Vector2d best_px_curr; 
     for ( double l=-half_length; l<=half_length; l+=0.7 )  // l+=sqrt(2)/2，以0.7个像素为步长
     {
-        Vector2d px_curr = px_mean_curr + l*epipolar_direction;  // 待匹配点
+        Vector2d px_curr = px_mean_curr + l*epipolar_direction;  // 当前帧中的待匹配点
         // 检测一个点是否在图像边框内
         if ( !inside(px_curr) )
             continue; 
         // 计算待匹配点与参考帧的 NCC
-        double ncc = NCC( ref, curr, pt_ref, px_curr );
+        double ncc = NCC( ref, curr, pt_ref, px_curr, T_C_R );
         if ( ncc>best_ncc )
         {
             best_ncc = ncc; 
@@ -303,7 +326,8 @@ bool epipolarSearch(
 
 double NCC (
     const Mat& ref, const Mat& curr, 
-    const Vector2d& pt_ref, const Vector2d& pt_curr
+    const Vector2d& pt_ref, const Vector2d& pt_curr,
+    const SE3& T_C_R
 )
 {
     // 零均值-归一化互相关
@@ -319,14 +343,21 @@ double NCC (
             mean_ref += value_ref;
             
             // 坐标值为浮点数，需要做双线性插值获得整数值坐标
-            double value_curr = getBilinearInterpolatedValue( curr, pt_curr+Vector2d(x,y) );
+            // 使用仿射变换，目前此部分代码仍有问题
+            double value_curr;
+            if ( AFFINE_TRANSFORM ){
+                Vector2d aff_xy = cam2px(T_C_R.rotation_matrix() * px2cam(Vector2d(x+pt_ref(0,0),y+pt_ref(1,0)))+T_C_R.translation());
+                value_curr = getBilinearInterpolatedValue( curr, aff_xy );
+            }
+            else{
+                value_curr = getBilinearInterpolatedValue( curr, pt_curr+Vector2d(x,y) );
+            }
             mean_curr += value_curr;
             
             // 将要比较的数据放到vector中
             values_ref.push_back(value_ref);
             values_curr.push_back(value_curr);
         }
-        
     mean_ref /= ncc_area; // 在代码最开始部分定义
     mean_curr /= ncc_area;
     
@@ -405,18 +436,36 @@ bool updateDepthFilter(
     double beta_prime = beta + atan(1/fx);
     double gamma = M_PI - alpha - beta_prime;
     double p_prime = t_norm * sin(beta_prime) / sin(gamma);
-    double d_cov = p_prime - depth_estimation; // depth_estimation就是p的norm
-    double d_cov2 = d_cov*d_cov; // observation的协方差
-    
-    // 高斯融合
-    double mu = depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth值
-    double sigma2 = depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth的协方差值
-    
-    double mu_fuse = (d_cov2*mu+sigma2*depth_estimation) / ( sigma2+d_cov2); // 均值的融合
-    double sigma_fuse2 = ( sigma2 * d_cov2 ) / ( sigma2 + d_cov2 ); // 方差的融合
-    
-    depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = mu_fuse; // 均值的更新
-    depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = sigma_fuse2; // 方差的更新
+
+    if ( INVERSE_DEPTH ){
+        // 以下与均值相关的变量均取倒数，与方差相关的变量维持不变
+        double d_cov = 1/p_prime - 1/depth_estimation; // 逆深度的像素扰动
+        double d_cov2 = d_cov*d_cov;
+
+        // 高斯融合
+        double mu = depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth值
+        double sigma2 = depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth的协方差值
+
+        double mu_fuse = (d_cov2/mu+sigma2/depth_estimation) / ( sigma2+d_cov2); // 均值的融合
+        double sigma_fuse2 = ( sigma2 * d_cov2 ) / ( sigma2 + d_cov2 ); // 方差的融合
+        
+        depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = 1/mu_fuse; // 均值的更新
+        depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = sigma_fuse2; // 方差的更新
+    }
+    else{
+        double d_cov = p_prime - depth_estimation; // depth_estimation就是p的norm
+        double d_cov2 = d_cov*d_cov; // observation的协方差
+        
+        // 高斯融合
+        double mu = depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth值
+        double sigma2 = depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ]; // 读取depth的协方差值
+        
+        double mu_fuse = (d_cov2*mu+sigma2*depth_estimation) / ( sigma2+d_cov2); // 均值的融合
+        double sigma_fuse2 = ( sigma2 * d_cov2 ) / ( sigma2 + d_cov2 ); // 方差的融合
+        
+        depth.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = mu_fuse; // 均值的更新
+        depth_cov.ptr<double>( int(pt_ref(1,0)) )[ int(pt_ref(0,0)) ] = sigma_fuse2; // 方差的更新
+    }
     
     return true;
 }
