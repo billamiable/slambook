@@ -9,6 +9,8 @@
 
 using namespace ceres;
 
+const int SCHUR_PART = 0;
+
 // ceres依靠Solver::Options的类型成员变量进行赋值来选择稠密或者稀疏的线性方程组解法
 void SetLinearSolver(ceres::Solver::Options* options, const BundleParams& params)
 {
@@ -38,10 +40,23 @@ void SetOrdering(BALProblem* bal_problem, ceres::Solver::Options* options, const
     ceres::ParameterBlockOrdering* ordering = new ceres::ParameterBlockOrdering;
 
     // The points come before the cameras
-    for(int i = 0; i < num_points; ++i)
-       // 使用AddElementToGroup来对变量进行编号从而定义消元顺序
-       // 优先消元编号最小的变量
-       ordering->AddElementToGroup(points + point_block_size * i, 0); // 先消元point
+    if ( SCHUR_PART ){
+        const int N = 3;
+        for(int i = 0; i < num_points; ++i){
+            if(i%N==0){
+                ordering->AddElementToGroup(points + point_block_size * i, 0);
+            }
+            else{
+                ordering->AddElementToGroup(points + point_block_size * i, 1);
+            } 
+        }
+    }
+    else{
+        for(int i = 0; i < num_points; ++i)
+            // 使用AddElementToGroup来对变量进行编号从而定义消元顺序
+            // 优先消元编号最小的变量
+            ordering->AddElementToGroup(points + point_block_size * i, 0); // 先消元point
+    }
        
     
     for(int i = 0; i < num_cameras; ++i)
