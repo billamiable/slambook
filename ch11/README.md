@@ -7,7 +7,7 @@
 
 **2、参照g2o的程序，在Ceres中实现对“球”位姿图的优化。**
 
-参考资料：https://blog.csdn.net/u012348774/article/details/84144084
+参考资料：[答案来源](https://blog.csdn.net/u012348774/article/details/84144084)
 
 代码思路：主要涉及到了设置新的Local Parameterization和重载SizedCostFunction函数来实现雅克比矩阵，其中使用Local Paramterization的原因请见以下[google forum](https://groups.google.com/forum/#!msg/ceres-solver/7HfF6DnCv7o/h38kAxYKAwAJ)。具体代码实现请见[博客](https://blog.csdn.net/u012348774/article/details/84144084)。
 
