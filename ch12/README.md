@@ -9,7 +9,7 @@
 ```python
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('TkAgg') # mac电脑要加
 import matplotlib.pyplot as plt
 
 def PR_curve(y, prob):
