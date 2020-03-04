@@ -220,12 +220,12 @@ void bundleAdjustment (
     // 初始化g2o
     // pose:XYZ,3个角度;landmark:XYZ
     typedef g2o::BlockSolver< g2o::BlockSolverTraits<6,3> > Block;  // pose 维度为 6, landmark 维度为 3
-    Block::LinearSolverType* linearSolver = new g2o::LinearSolverCSparse<Block::PoseMatrixType>(); // 线性方程求解器
-    Block* solver_ptr = new Block ( linearSolver );     // 矩阵块求解器
+    std::unique_ptr<Block::LinearSolverType> linearSolver(new g2o::LinearSolverCSparse<Block::PoseMatrixType>()); // 线性方程求解器
+    std::unique_ptr<Block> solver_ptr(new Block(std::move(linearSolver)));     // 矩阵块求解器
     // 从结果上来看，3D2D比3D3D要难，3D2D必须要给定好的初值，而3D3D要求很宽松
     // 从原理上，是因为ICP的极小值就是全局最优值，因此可以任意选择初值
     // g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton( solver_ptr );
-    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg ( solver_ptr );
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(std::move(solver_ptr));
     g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm ( solver );
 
@@ -316,7 +316,7 @@ void bundleAdjustment (
     // assign value to R,T
     Eigen::Matrix4d output = Eigen::Isometry3d( pose->estimate() ).matrix();
     Eigen::Matrix3d R_out = output.block(0,0,3,3); // 利用Eigen的block函数获取子矩阵
-    Eigen::Vector3d T_out = output.block(0,3,3,4);
+    Eigen::Vector3d T_out = output.block(0, 3, 3, 1);
     cout<<"R_out="<<endl<<R_out<<endl;
     cout<<"T_out="<<endl<<T_out<<endl;
     // 将eigen的matrix和vector形式转换成Mat格式
