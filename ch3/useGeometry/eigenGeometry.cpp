@@ -1,10 +1,16 @@
 #include <iostream>
 #include <cmath>
-using namespace std;
 
 #include <Eigen/Core>
 // Eigen 几何模块
 #include <Eigen/Geometry>
+#include <Eigen/SVD>
+
+#include <chrono>
+using namespace std::chrono;
+using namespace std;
+
+
 
 /****************************
 * 本程序演示了 Eigen 几何模块的使用方法
@@ -55,6 +61,16 @@ int main ( int argc, char** argv )
     T.pretranslate ( Eigen::Vector3d ( 1,3,4 ) );         // 把平移向量设成(1,3,4)
     cout << "Transform matrix = \n" << T.matrix() <<endl;
 
+    Eigen::Matrix3d rotation_T = T.rotation();
+    cout<<"---- T ---- rotation matrix  =\n"<<rotation_T <<endl;
+    
+    Eigen::Quaterniond q_T = Eigen::Quaterniond ( rotation_T );
+    cout<<"---- T ---- quaternion = \n"<<q_T.coeffs() <<endl;
+
+    Eigen::Vector3d translation_T = T.translation();
+    cout<<"---- T ---- translation = \n"<<translation_T.transpose() <<endl;
+    
+
     // 用变换矩阵进行坐标变换，v是（1，0，0）
     Eigen::Vector3d v_transformed = T*v;                              // 相当于R*v+t，理解！
     cout<<"v tranformed = "<<v_transformed.transpose()<<endl;         // 结果正确
@@ -65,12 +81,42 @@ int main ( int argc, char** argv )
     // 可以直接把AngleAxis赋值给四元数，反之亦然，也就是用角轴转成四元数
     Eigen::Quaterniond q = Eigen::Quaterniond ( rotation_vector );
     cout<<"quaternion = \n"<<q.coeffs() <<endl;   // 请注意coeffs的顺序是(x,y,z,w),w为实部，前三者为虚部，顺序不一样
+
+    Eigen::Quaterniond q1(0.924, 0, 0, 0.383); // 赋值的时候是w,x,y,z
+    cout<<"quaternion1 = \n"<<q1.coeffs() <<endl;
+
     // 也可以把旋转矩阵赋给它，结果一样！
-    q = Eigen::Quaterniond ( rotation_matrix );
-    cout<<"quaternion = \n"<<q.coeffs() <<endl;
+    Eigen::Quaterniond q2 = Eigen::Quaterniond ( rotation_matrix );
+    cout<<"quaternion = \n"<<q2.coeffs() <<endl;
+
+    cout<<"--- rotation matrix =\n"<<q2.toRotationMatrix() <<endl;
+
     // 使用四元数旋转一个向量，使用重载的乘法即可
     v_rotated = q*v; // 注意数学上是qvq^{-1}
     cout<<"(1,0,0) after rotation = "<<v_rotated.transpose()<<endl; //结果正确
+
+    auto t0 = std::chrono::high_resolution_clock::now();
+    Eigen::Quaterniond quat = Eigen::Quaterniond ( T.rotation() );
+    Eigen::Vector3d pos = T.translation();
+    std::cout <<"time is " << std::chrono::duration_cast<std::chrono::nanoseconds> (std::chrono::high_resolution_clock::now() - t0).count()<< '\n';
+
+
+    Eigen::Matrix4d T_m = Eigen::Matrix4d::Identity(); 
+    T_m.block<3, 3>(0, 0) = rotation_matrix;
+    T_m.block<3, 1>(0, 3) = Eigen::Vector3d ( 1,3,4 );
+    cout << "Transform matrix = \n" << T_m <<endl;
+    cout << "Rotation matrix= \n" << T_m.block<3, 3>(0, 0) << endl;
+    cout << "Translation matrix= \n" << T_m.block<3, 1>(0, 3) << endl;
+
+    // Test if Quaterniond only takes normalized rotation matrix
+    cout << "Rotation matrix= \n" << rotation_matrix << endl;
+    rotation_matrix *= 2.0;
+    cout << "Rotation matrix= \n" << rotation_matrix << endl;
+    double scale = std::sqrt((rotation_matrix.transpose() * rotation_matrix)(0, 0));
+    Eigen::Matrix3d ret = (1. / scale) * rotation_matrix;
+    Eigen::Matrix3d rotation_matrix_quat = Eigen::Quaterniond ( ret ).normalized().toRotationMatrix();;
+    cout << "Rotation matrix= \n" << rotation_matrix_quat << endl;
+    
 
     return 0;
 }
